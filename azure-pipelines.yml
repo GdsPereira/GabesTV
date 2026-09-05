@@ -24,12 +24,15 @@ steps:
       gradle wrapper --gradle-version 8.6
     fi
     chmod +x gradlew
-  displayName: 'Verify and grant execute permission for gradlew'
+    # Accept all Android SDK licenses automatically
+    yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+  displayName: 'Verify gradlew and accept Android SDK licenses'
 
 - task: Gradle@3
   inputs:
     gradleWrapperFile: 'gradlew'
-    tasks: 'assembleDebug test'
+    tasks: ':app:assembleDebug :app:testDebugUnitTest'
+    options: '--stacktrace'
     publishJUnitResults: true
     testResultsFiles: '**/TEST-*.xml'
     javaHomeOption: 'JDKVersion'
