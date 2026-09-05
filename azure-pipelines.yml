@@ -19,8 +19,12 @@ steps:
   displayName: 'Setup JDK $(JAVA_VERSION)'
 
 - script: |
-    chmod +x gradlew || true
-  displayName: 'Grant execute permission for gradlew'
+    if [ ! -f gradlew ]; then
+      echo "Generating wrapper via system gradle..."
+      gradle wrapper --gradle-version 8.6
+    fi
+    chmod +x gradlew
+  displayName: 'Verify and grant execute permission for gradlew'
 
 - task: Gradle@3
   inputs:
@@ -35,7 +39,7 @@ steps:
 
 - task: CopyFiles@2
   inputs:
-    contents: '**/*.apk'
+    contents: 'app/build/outputs/apk/**/*.apk'
     targetFolder: '$(Build.ArtifactStagingDirectory)'
     flattenFolders: true
   displayName: 'Copy APK to Staging Directory'
