@@ -1,0 +1,13 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="espn.test" tvg-name="ESPN Test 1080p" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/2/2f/ESPN_wordmark.svg" group-title="Esportes",ESPN Live Sports HD
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="foxsports.test" tvg-name="Fox Sports HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/7/75/Fox_Sports_logo.svg" group-title="Esportes",Fox Sports FHD
+https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8
+#EXTINF:-1 tvg-id="cnn.test" tvg-name="CNN News HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/b/b1/CNN.svg" group-title="Notícias",CNN International Live
+https://test-streams.mux.dev/test_001/stream.m3u8
+#EXTINF:-1 tvg-id="bbc.test" tvg-name="BBC News Live" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/4/41/BBC_Logo_2021.svg" group-title="Notícias",BBC World News 24h
+https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8
+#EXTINF:-1 tvg-id="hbo.test" tvg-name="HBO Cinema 4K" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/d/de/HBO_logo.svg" group-title="Filmes",HBO Cinema 4K
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="natgeo.test" tvg-name="NatGeo Wild" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/6/6a/National_Geographic_logo.svg" group-title="Documentários",National Geographic Wild HD
+https://test-streams.mux.dev/test_001/stream.m3u8

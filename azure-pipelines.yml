@@ -1,0 +1,48 @@
+trigger:
+  branches:
+    include:
+      - main
+      - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  JAVA_VERSION: '17'
+
+steps:
+- task: JavaToolInstaller@0
+  inputs:
+    versionSpec: '$(JAVA_VERSION)'
+    jdkArchitectureOption: 'x64'
+    jdkSourceOption: 'PreInstalled'
+  displayName: 'Setup JDK $(JAVA_VERSION)'
+
+- script: |
+    chmod +x gradlew || true
+  displayName: 'Grant execute permission for gradlew'
+
+- task: Gradle@3
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    tasks: 'assembleDebug test'
+    publishJUnitResults: true
+    testResultsFiles: '**/TEST-*.xml'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.17'
+    jdkArchitectureOption: 'x64'
+  displayName: 'Build Android TV APK & Run Unit Tests'
+
+- task: CopyFiles@2
+  inputs:
+    contents: '**/*.apk'
+    targetFolder: '$(Build.ArtifactStagingDirectory)'
+    flattenFolders: true
+  displayName: 'Copy APK to Staging Directory'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'GabesTV-AndroidTV-APK'
+    publishLocation: 'Container'
+  displayName: 'Publish APK Artifact'
