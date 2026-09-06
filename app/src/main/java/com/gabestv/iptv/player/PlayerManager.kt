@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -182,8 +184,18 @@ class PlayerManager(
             )
         }
 
+        val streamUrl = channel.streamUrl.trim()
+        val mimeType = when {
+            streamUrl.contains(".m3u8", ignoreCase = true) -> MimeTypes.APPLICATION_M3U8
+            streamUrl.contains(".mpd", ignoreCase = true) -> MimeTypes.APPLICATION_MPD
+            streamUrl.endsWith(".ts", ignoreCase = true) -> MimeTypes.VIDEO_MP2T
+            streamUrl.contains("/stream/") -> MimeTypes.APPLICATION_M3U8 // Threadfin live streams
+            else -> MimeTypes.APPLICATION_M3U8 // Default IPTV streams to HLS
+        }
+
         val mediaItem = MediaItem.Builder()
-            .setUri(channel.streamUrl)
+            .setUri(streamUrl)
+            .setMimeType(mimeType)
             .setLiveConfiguration(
                 MediaItem.LiveConfiguration.Builder()
                     .setMaxPlaybackSpeed(1.02f)
@@ -192,7 +204,7 @@ class PlayerManager(
             )
             .build()
 
-        // DefaultMediaSourceFactory auto-detects HLS or TS stream container seamlessly
+        // DefaultMediaSourceFactory creates HlsMediaSource or ProgressiveMediaSource based on mimeType
         return DefaultMediaSourceFactory(context)
             .setDataSourceFactory(httpDataSourceFactory)
             .createMediaSource(mediaItem)
@@ -201,6 +213,25 @@ class PlayerManager(
     private fun handlePlaybackError(error: PlaybackException) {
         android.util.Log.e("GabesTV_Player", "Playback error for ${currentChannel?.name}: ${error.errorCodeName} (${error.errorCode})", error)
 
+        // Check for HTTP errors like 404/410/403 (channel offline on remote upstream provider)
+        var httpStatusCode: Int? = null
+        var cause: Throwable? = error.cause
+        while (cause != null) {
+            if (cause is HttpDataSource.InvalidResponseCodeException) {
+                httpStatusCode = cause.responseCode
+                break
+            }
+            cause = cause.cause
+        }
+
+        if (httpStatusCode != null && httpStatusCode in listOf(404, 410, 403, 502, 503)) {
+            _playerState.value = PlayerState.Error(
+                message = "Canal fora do ar no provedor original (HTTP $httpStatusCode). Use ◀ / ▶ para trocar de canal.",
+                isRetrying = false
+            )
+            return
+        }
+
         // Non-recoverable errors (decoding or invalid container format)
         val isUnrecoverable = error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                 error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
@@ -208,7 +239,7 @@ class PlayerManager(
 
         if (isUnrecoverable) {
             _playerState.value = PlayerState.Error(
-                message = "Formato de stream incompatível (${error.errorCodeName}). Troque de canal.",
+                message = "Formato de stream incompatível (${error.errorCodeName}). Troque de canal com ◀ / ▶.",
                 isRetrying = false
             )
             return
