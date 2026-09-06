@@ -31,14 +31,14 @@ steps:
 - task: Gradle@3
   inputs:
     gradleWrapperFile: 'gradlew'
-    tasks: ':app:assembleDebug :app:testDebugUnitTest'
+    tasks: ':app:testDebugUnitTest :app:assembleDebug :app:assembleRelease'
     options: '--stacktrace'
     publishJUnitResults: true
     testResultsFiles: '**/TEST-*.xml'
     javaHomeOption: 'JDKVersion'
     jdkVersionOption: '1.17'
     jdkArchitectureOption: 'x64'
-  displayName: 'Build Android TV APK & Run Unit Tests'
+  displayName: 'Run Unit Tests & Build Debug and Release APKs'
 
 - task: CopyFiles@2
   inputs:

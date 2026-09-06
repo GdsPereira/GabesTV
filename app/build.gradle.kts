@@ -20,6 +20,31 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        val defaultPlaylistUrl = (project.findProperty("GABESTV_PLAYLIST_URL") as? String)
+            ?: System.getenv("GABESTV_PLAYLIST_URL")
+            ?: "https://tv.gabesp.com.br/m3u/threadfin.m3u"
+        val defaultBackendBaseUrl = (project.findProperty("GABESTV_BACKEND_BASE_URL") as? String)
+            ?: System.getenv("GABESTV_BACKEND_BASE_URL")
+            ?: "https://tv.gabesp.com.br"
+
+        buildConfigField("String", "PLAYLIST_URL", "\"$defaultPlaylistUrl\"")
+        buildConfigField("String", "BACKEND_BASE_URL", "\"$defaultBackendBaseUrl\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystoreFile = System.getenv("KEYSTORE_FILE") ?: (project.findProperty("KEYSTORE_FILE") as? String)
+            if (!keystoreFile.isNullOrEmpty() && file(keystoreFile).exists()) {
+                storeFile = file(keystoreFile)
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
+                keyAlias = System.getenv("KEY_ALIAS") ?: (project.findProperty("KEY_ALIAS") as? String)
+                keyPassword = System.getenv("KEY_PASSWORD") ?: (project.findProperty("KEY_PASSWORD") as? String)
+            } else {
+                // Fallback to debug keystore for development / local release validation
+                initWith(getByName("debug"))
+            }
+        }
     }
 
     buildTypes {
@@ -30,7 +55,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -46,13 +71,13 @@ android {
     kotlinOptions {
         jvmTarget = "17"
         freeCompilerArgs += listOf(
-            "-opt-in=androidx.tv.material3.ExperimentalTvMaterial3Api",
-            "-opt-in=androidx.media3.common.util.UnstableApi"
+            "-opt-in=androidx.tv.material3.ExperimentalTvMaterial3Api"
         )
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -63,6 +88,10 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -122,4 +151,6 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.google.truth:truth:1.4.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("io.mockk:mockk:1.13.11")
 }

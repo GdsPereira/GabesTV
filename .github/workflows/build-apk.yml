@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - develop
     tags:
       - 'v*'
   workflow_dispatch:
@@ -21,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -30,29 +31,67 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Android TV Debug APK & Run Unit Tests
-        run: ./gradlew :app:assembleDebug :app:testDebugUnitTest --stacktrace
+      - name: Run Unit Tests and Build Debug & Release APKs
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --stacktrace
 
-      - name: Rename APK for Distribution
+      - name: Prepare APKs for Distribution
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/GabesTV-AndroidTV.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/GabesTV-AndroidTV-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/GabesTV-AndroidTV-release.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/GabesTV-AndroidTV.apk
 
-      - name: Upload Build Artifact
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GabesTV-AndroidTV-APK
-          path: dist/GabesTV-AndroidTV.apk
+          name: GabesTV-AndroidTV-APKs
+          path: dist/*.apk
           retention-days: 30
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (Tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/GabesTV-AndroidTV.apk
+          files: |
+            dist/GabesTV-AndroidTV-release.apk
+            dist/GabesTV-AndroidTV-debug.apk
+            dist/GabesTV-AndroidTV.apk
           name: "GabesTV Android TV ${{ github.ref_name }}"
           draft: false
           prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Rolling Release (main / develop)
+        if: (!startsWith(github.ref, 'refs/tags/v'))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "GabesTV Android TV (Último Build)"
+          prerelease: true
+          files: |
+            dist/GabesTV-AndroidTV-release.apk
+            dist/GabesTV-AndroidTV-debug.apk
+            dist/GabesTV-AndroidTV.apk
+          body: |
+            ### 📺 GabesTV - Build Automático Recente
+            Este release é atualizado automaticamente a cada alteração na branch `main`.
+
+            #### 📥 Download Direto:
+            - **[Baixar GabesTV (Release)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk)** (Recomendado)
+            - **[Baixar GabesTV (Debug)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-debug.apk)**
+
+            > 💡 **Para Android TV / TV Box**: Cole o link direto no aplicativo **Downloader** (ou utilize um código encurtador) para instalar diretamente na TV!
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary with Direct Download Links
+        run: |
+          echo "## 🚀 Build do GabesTV Concluído!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Links Diretos de Download (Sem ZIP / Sem Login):" >> $GITHUB_STEP_SUMMARY
+          echo "- 📱 **Release APK (Otimizado)**: [Download GabesTV-AndroidTV-release.apk](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛠️ **Debug APK**: [Download GabesTV-AndroidTV-debug.apk](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-debug.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 📺 **Dica para TV Box / Android TV**: No app **Downloader** da AFTVNews, use o link direto acima para baixar e instalar sem precisar de computador!" >> $GITHUB_STEP_SUMMARY

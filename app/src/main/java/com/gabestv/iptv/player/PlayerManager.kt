@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -22,6 +24,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 sealed interface PlayerState {
     data object Idle : PlayerState
@@ -38,7 +47,8 @@ sealed interface PlayerState {
 @OptIn(UnstableApi::class)
 class PlayerManager(
     private val context: Context,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
+    private val okHttpClient: OkHttpClient = defaultOkHttpClient
 ) {
     private var exoPlayer: ExoPlayer? = null
     private var currentChannel: Channel? = null
@@ -55,6 +65,34 @@ class PlayerManager(
         private const val MAX_RETRIES = 5
         private const val BASE_RETRY_DELAY_MS = 2000L
         private const val DEFAULT_USER_AGENT = "GabesTV/1.0 (Android TV; TCL SmartTV; ExoPlayer)"
+
+        val defaultOkHttpClient: OkHttpClient by lazy {
+            createPermissiveOkHttpClient()
+        }
+
+        fun createPermissiveOkHttpClient(): OkHttpClient {
+            val trustAllCerts = arrayOf<TrustManager>(
+                object : X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                }
+            )
+
+            val sslContext = SSLContext.getInstance("SSL").apply {
+                init(null, trustAllCerts, SecureRandom())
+            }
+
+            return OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+                .hostnameVerifier { _, _ -> true }
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .build()
+        }
     }
 
     fun getPlayer(): ExoPlayer {
@@ -137,11 +175,8 @@ class PlayerManager(
     private fun buildMediaSource(channel: Channel): MediaSource {
         val userAgent = channel.httpUserAgent ?: DEFAULT_USER_AGENT
 
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+        val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent(userAgent)
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
-            .setAllowCrossProtocolRedirects(true)
 
         if (!channel.httpReferrer.isNullOrBlank()) {
             httpDataSourceFactory.setDefaultRequestProperties(
@@ -149,8 +184,18 @@ class PlayerManager(
             )
         }
 
+        val streamUrl = channel.streamUrl.trim()
+        val mimeType = when {
+            streamUrl.contains(".m3u8", ignoreCase = true) -> MimeTypes.APPLICATION_M3U8
+            streamUrl.contains(".mpd", ignoreCase = true) -> MimeTypes.APPLICATION_MPD
+            streamUrl.endsWith(".ts", ignoreCase = true) -> MimeTypes.VIDEO_MP2T
+            streamUrl.contains("/stream/") -> MimeTypes.APPLICATION_M3U8 // Threadfin live streams
+            else -> MimeTypes.APPLICATION_M3U8 // Default IPTV streams to HLS
+        }
+
         val mediaItem = MediaItem.Builder()
-            .setUri(channel.streamUrl)
+            .setUri(streamUrl)
+            .setMimeType(mimeType)
             .setLiveConfiguration(
                 MediaItem.LiveConfiguration.Builder()
                     .setMaxPlaybackSpeed(1.02f)
@@ -159,18 +204,61 @@ class PlayerManager(
             )
             .build()
 
-        // DefaultMediaSourceFactory auto-detects HLS or TS stream container seamlessly
+        // DefaultMediaSourceFactory creates HlsMediaSource or ProgressiveMediaSource based on mimeType
         return DefaultMediaSourceFactory(context)
             .setDataSourceFactory(httpDataSourceFactory)
             .createMediaSource(mediaItem)
     }
 
     private fun handlePlaybackError(error: PlaybackException) {
+        android.util.Log.e("GabesTV_Player", "Playback error for ${currentChannel?.name}: ${error.errorCodeName} (${error.errorCode})", error)
+
+        // Check for HTTP errors like 404/410/403 (channel offline on remote upstream provider)
+        var httpStatusCode: Int? = null
+        var cause: Throwable? = error.cause
+        while (cause != null) {
+            if (cause is HttpDataSource.InvalidResponseCodeException) {
+                httpStatusCode = cause.responseCode
+                break
+            }
+            cause = cause.cause
+        }
+
+        if (httpStatusCode != null && httpStatusCode in listOf(404, 410, 403, 502, 503)) {
+            _playerState.value = PlayerState.Error(
+                message = "Canal fora do ar no provedor original (HTTP $httpStatusCode). Use ◀ / ▶ para trocar de canal.",
+                isRetrying = false
+            )
+            return
+        }
+
+        // Non-recoverable errors (decoding or invalid container format)
+        val isUnrecoverable = error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+
+        if (isUnrecoverable) {
+            _playerState.value = PlayerState.Error(
+                message = "Formato de stream incompatível (${error.errorCodeName}). Troque de canal com ◀ / ▶.",
+                isRetrying = false
+            )
+            return
+        }
+
         if (retryCount < MAX_RETRIES && currentChannel != null) {
             retryCount++
-            val delayMs = BASE_RETRY_DELAY_MS * retryCount
+            // Exponential backoff: 2s, 4s, 8s, 10s, 10s
+            val delayMs = (BASE_RETRY_DELAY_MS * (1L shl (retryCount - 1))).coerceAtMost(10_000L)
+
+            val statusDetail = when (error.errorCode) {
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "Falha de conexão"
+                PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> "Erro no servidor de streaming"
+                else -> "Instabilidade no stream"
+            }
+
             _playerState.value = PlayerState.Error(
-                message = "Conexão instável. Reconectando (${retryCount}/$MAX_RETRIES)…",
+                message = "$statusDetail. Reconectando (${retryCount}/$MAX_RETRIES)…",
                 isRetrying = true
             )
 
@@ -181,9 +269,16 @@ class PlayerManager(
             }
         } else {
             _playerState.value = PlayerState.Error(
-                message = "Stream indisponível (HTTP ${error.errorCode}). Verifique o Threadfin.",
+                message = "Stream indisponível (${error.errorCodeName}). Use ◀ / ▶ para trocar de canal.",
                 isRetrying = false
             )
+        }
+    }
+
+    fun retryCurrent() {
+        currentChannel?.let {
+            retryCount = 0
+            play(it)
         }
     }
 

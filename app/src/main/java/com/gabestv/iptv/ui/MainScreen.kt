@@ -15,10 +15,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -32,49 +29,96 @@ import com.gabestv.iptv.model.Channel
 import com.gabestv.iptv.model.ChannelCategory
 import com.gabestv.iptv.ui.components.CategoryDrawer
 import com.gabestv.iptv.ui.components.ChannelCard
+import com.gabestv.iptv.ui.mobile.MobileMainScreen
+import com.gabestv.iptv.ui.theme.DeepDarkBackground
 import com.gabestv.iptv.ui.theme.GabesTVTheme
+import com.gabestv.iptv.ui.util.LocalDeviceType
+import com.gabestv.iptv.viewmodel.MainViewModel
 
 @Composable
 fun MainScreen(
     categories: List<ChannelCategory>,
     channels: List<Channel>,
+    selectedCategoryId: String?,
+    onCategorySelected: (String) -> Unit,
     onChannelClick: (Channel) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    favoriteChannelIds: Set<String> = emptySet(),
+    isListView: Boolean = false,
+    onSearchQueryChanged: (String) -> Unit = {},
+    onToggleFavorite: (String) -> Unit = {},
+    onToggleViewMode: () -> Unit = {},
+    onRefreshPlaylist: () -> Unit = {}
 ) {
-    var selectedCategoryId by remember {
-        mutableStateOf(categories.firstOrNull()?.id)
+    val deviceType = LocalDeviceType.current
+
+    if (deviceType.isPhone) {
+        MobileMainScreen(
+            categories = categories,
+            channels = channels,
+            selectedCategoryId = selectedCategoryId,
+            searchQuery = searchQuery,
+            favoriteChannelIds = favoriteChannelIds,
+            isListView = isListView,
+            onCategorySelected = onCategorySelected,
+            onSearchQueryChanged = onSearchQueryChanged,
+            onToggleFavorite = onToggleFavorite,
+            onToggleViewMode = onToggleViewMode,
+            onRefreshPlaylist = onRefreshPlaylist,
+            onChannelClick = onChannelClick,
+            modifier = modifier
+        )
+        return
     }
 
-    val filteredChannels = remember(selectedCategoryId, channels) {
-        if (selectedCategoryId == null) channels
-        else {
-            val cat = categories.find { it.id == selectedCategoryId }
-            if (cat != null) channels.filter { it.groupTitle.equals(cat.name, ignoreCase = true) }
-            else channels
+    // Android TV / Tablet Split-Screen 10-foot UI
+    val filteredChannels = remember(selectedCategoryId, channels, categories, favoriteChannelIds) {
+        when (selectedCategoryId) {
+            MainViewModel.FAVORITES_CATEGORY_ID -> {
+                channels.filter { favoriteChannelIds.contains(it.id) }
+            }
+            MainViewModel.ALL_CHANNELS_CATEGORY_ID, null -> {
+                channels
+            }
+            else -> {
+                val cat = categories.find { it.id == selectedCategoryId }
+                if (cat != null) channels.filter { it.groupTitle.equals(cat.name, ignoreCase = true) }
+                else channels
+            }
         }
     }
 
     Row(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DeepDarkBackground)
     ) {
         // Left Side Navigation Drawer
         CategoryDrawer(
             categories = categories,
             selectedCategoryId = selectedCategoryId,
             onCategorySelected = { category ->
-                selectedCategoryId = category.id
-            }
+                onCategorySelected(category.id)
+            },
+            favoriteCount = favoriteChannelIds.size,
+            onSelectFavorites = {
+                onCategorySelected(MainViewModel.FAVORITES_CATEGORY_ID)
+            },
+            onRefresh = onRefreshPlaylist
         )
 
         // Main Channel Grid
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 28.dp, start = 24.dp, end = 32.dp, bottom = 16.dp)
+                .padding(top = 28.dp, start = 28.dp, end = 32.dp, bottom = 16.dp)
         ) {
-            val currentCategoryName = categories.find { it.id == selectedCategoryId }?.name ?: "All Channels"
+            val currentCategoryName = when (selectedCategoryId) {
+                MainViewModel.FAVORITES_CATEGORY_ID -> "Favoritos"
+                MainViewModel.ALL_CHANNELS_CATEGORY_ID, null -> "Todos os Canais"
+                else -> categories.find { it.id == selectedCategoryId }?.name ?: "Canais"
+            }
 
             Text(
                 text = currentCategoryName,
@@ -87,13 +131,13 @@ fun MainScreen(
             Text(
                 text = "${filteredChannels.size} canais disponíveis",
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color(0xFFA7A9BE)
             )
 
             Spacer(modifier = Modifier.height(18.dp))
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
+                columns = GridCells.Adaptive(minSize = 200.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -102,6 +146,8 @@ fun MainScreen(
                 items(filteredChannels, key = { it.id }) { channel ->
                     ChannelCard(
                         channel = channel,
+                        isFavorite = favoriteChannelIds.contains(channel.id),
+                        onToggleFavorite = { onToggleFavorite(channel.id) },
                         onClick = { onChannelClick(channel) }
                     )
                 }
@@ -140,6 +186,8 @@ fun MainScreenPreview() {
         MainScreen(
             categories = sampleCategories,
             channels = sampleChannels,
+            selectedCategoryId = "sports",
+            onCategorySelected = {},
             onChannelClick = {}
         )
     }

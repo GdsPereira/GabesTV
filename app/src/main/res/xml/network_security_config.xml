@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Default security configuration: deny all cleartext (HTTP) traffic -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Restrict cleartext traffic strictly to authorized IPTV streaming endpoints / LAN if required -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">tv.gabesp.com.br</domain>
+        <domain includeSubdomains="true">gabesp.com.br</domain>
+        <domain includeSubdomains="true">10.0.0.0</domain>
+        <domain includeSubdomains="true">192.168.0.0</domain>
+    </domain-config>
+</network-security-config>
