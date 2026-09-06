@@ -104,7 +104,8 @@ fun MainScreen(
             favoriteCount = favoriteChannelIds.size,
             onSelectFavorites = {
                 onCategorySelected(MainViewModel.FAVORITES_CATEGORY_ID)
-            }
+            },
+            onRefresh = onRefreshPlaylist
         )
 
         // Main Channel Grid

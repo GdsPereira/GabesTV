@@ -45,6 +45,7 @@ class ChannelRepository @Inject constructor(
             val request = Request.Builder()
                 .url(targetUrl)
                 .header("User-Agent", "GabesTV/1.0 (Android TV; TCL SmartTV)")
+                .header("Cache-Control", "no-cache, no-store")
                 .build()
 
             val response = okHttpClient.newCall(request).execute()

@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.gabestv.iptv.model.ChannelCategory
 import com.gabestv.iptv.ui.theme.CyberPurple
+import com.gabestv.iptv.ui.theme.ElectricCyan
 import com.gabestv.iptv.ui.theme.GoldAccent
 import com.gabestv.iptv.ui.theme.SurfaceDark
 import com.gabestv.iptv.ui.theme.SurfaceVariantDark
@@ -52,7 +54,8 @@ fun CategoryDrawer(
     onCategorySelected: (ChannelCategory) -> Unit,
     modifier: Modifier = Modifier,
     favoriteCount: Int = 0,
-    onSelectFavorites: (() -> Unit)? = null
+    onSelectFavorites: (() -> Unit)? = null,
+    onRefresh: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -106,6 +109,19 @@ fun CategoryDrawer(
                     accentColor = CyberPurple,
                     onClick = { onCategorySelected(category) }
                 )
+            }
+
+            if (onRefresh != null) {
+                item {
+                    CategoryDrawerItemRow(
+                        name = "Atualizar Lista",
+                        channelCount = -1,
+                        isSelected = false,
+                        icon = Icons.Default.Refresh,
+                        accentColor = ElectricCyan,
+                        onClick = onRefresh
+                    )
+                }
             }
         }
     }
@@ -177,17 +193,19 @@ private fun CategoryDrawerItemRow(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.Black.copy(alpha = 0.25f))
-                .padding(horizontal = 7.dp, vertical = 2.dp)
-        ) {
-            Text(
-                text = "$channelCount",
-                fontSize = 11.sp,
-                color = if (isFocused) Color.White else Color(0xFFA7A9BE)
-            )
+        if (channelCount >= 0) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    .padding(horizontal = 7.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "$channelCount",
+                    fontSize = 11.sp,
+                    color = if (isFocused) Color.White else Color(0xFFA7A9BE)
+                )
+            }
         }
     }
 }

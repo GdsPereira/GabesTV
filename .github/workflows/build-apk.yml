@@ -48,16 +48,50 @@ jobs:
           path: dist/*.apk
           retention-days: 30
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (Tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/GabesTV-AndroidTV-release.apk
             dist/GabesTV-AndroidTV-debug.apk
+            dist/GabesTV-AndroidTV.apk
           name: "GabesTV Android TV ${{ github.ref_name }}"
           draft: false
           prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Rolling Release (main / develop)
+        if: (!startsWith(github.ref, 'refs/tags/v'))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "GabesTV Android TV (Último Build)"
+          prerelease: true
+          files: |
+            dist/GabesTV-AndroidTV-release.apk
+            dist/GabesTV-AndroidTV-debug.apk
+            dist/GabesTV-AndroidTV.apk
+          body: |
+            ### 📺 GabesTV - Build Automático Recente
+            Este release é atualizado automaticamente a cada alteração na branch `main`.
+
+            #### 📥 Download Direto:
+            - **[Baixar GabesTV (Release)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk)** (Recomendado)
+            - **[Baixar GabesTV (Debug)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-debug.apk)**
+
+            > 💡 **Para Android TV / TV Box**: Cole o link direto no aplicativo **Downloader** (ou utilize um código encurtador) para instalar diretamente na TV!
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary with Direct Download Links
+        run: |
+          echo "## 🚀 Build do GabesTV Concluído!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Links Diretos de Download (Sem ZIP / Sem Login):" >> $GITHUB_STEP_SUMMARY
+          echo "- 📱 **Release APK (Otimizado)**: [Download GabesTV-AndroidTV-release.apk](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛠️ **Debug APK**: [Download GabesTV-AndroidTV-debug.apk](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-debug.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 📺 **Dica para TV Box / Android TV**: No app **Downloader** da AFTVNews, use o link direto acima para baixar e instalar sem precisar de computador!" >> $GITHUB_STEP_SUMMARY

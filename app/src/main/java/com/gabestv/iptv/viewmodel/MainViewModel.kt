@@ -46,11 +46,15 @@ class MainViewModel @Inject constructor(
 
     fun loadPlaylist(remoteUrl: String? = null) {
         viewModelScope.launch {
-            val previousCategory = (_uiState.value as? MainUiState.Success)?.selectedCategoryId
-            val previousFavorites = (_uiState.value as? MainUiState.Success)?.favoriteChannelIds ?: emptySet()
-            val previousIsList = (_uiState.value as? MainUiState.Success)?.isListView ?: false
+            val currentSuccess = _uiState.value as? MainUiState.Success
+            val previousCategory = currentSuccess?.selectedCategoryId
+            val previousActiveChannel = currentSuccess?.activePlayingChannel
+            val previousFavorites = currentSuccess?.favoriteChannelIds ?: emptySet()
+            val previousIsList = currentSuccess?.isListView ?: false
 
-            _uiState.value = MainUiState.Loading
+            if (currentSuccess == null) {
+                _uiState.value = MainUiState.Loading
+            }
             repository.loadPlaylist(remoteUrl)
                 .onSuccess { playlist ->
                     val defaultCategory = playlist.categories.firstOrNull()?.id
@@ -59,17 +63,24 @@ class MainViewModel @Inject constructor(
                     } else {
                         defaultCategory
                     }
+                    val updatedActiveChannel = if (previousActiveChannel != null) {
+                        playlist.channels.find { it.id == previousActiveChannel.id } ?: previousActiveChannel
+                    } else null
+
                     _uiState.value = MainUiState.Success(
                         playlist = playlist,
                         selectedCategoryId = effectiveCategory,
+                        activePlayingChannel = updatedActiveChannel,
                         favoriteChannelIds = previousFavorites,
                         isListView = previousIsList
                     )
                 }
                 .onFailure { error ->
-                    _uiState.value = MainUiState.Error(
-                        error.localizedMessage ?: "Erro desconhecido ao carregar canais"
-                    )
+                    if (currentSuccess == null) {
+                        _uiState.value = MainUiState.Error(
+                            error.localizedMessage ?: "Erro desconhecido ao carregar canais"
+                        )
+                    }
                 }
         }
     }
