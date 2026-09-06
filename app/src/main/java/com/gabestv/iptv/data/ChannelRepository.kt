@@ -22,33 +22,42 @@ class ChannelRepository @Inject constructor(
 ) {
     private var cachedPlaylist: Playlist? = null
 
+    companion object {
+        const val DEFAULT_THREADFIN_URL = "http://167.126.15.40:34400/m3u/threadfin.m3u"
+    }
+
     /**
-     * Loads and parses the M3U playlist.
-     * If a remote URL is provided, it fetches via OkHttp with streaming input.
-     * Otherwise, falls back to the bundled local `sample_channels.m3u` in assets.
+     * Loads and parses the M3U playlist from Threadfin cloud backend.
+     * Falls back to bundled local `sample_channels.m3u` if remote is unavailable or empty.
      */
     suspend fun loadPlaylist(remoteUrl: String? = null): Result<Playlist> = withContext(Dispatchers.IO) {
         runCatching {
-            val inputStream: InputStream = if (!remoteUrl.isNullOrBlank()) {
+            val targetUrl = remoteUrl ?: DEFAULT_THREADFIN_URL
+
+            val parsedPlaylist = runCatching {
                 val request = Request.Builder()
-                    .url(remoteUrl)
+                    .url(targetUrl)
                     .header("User-Agent", "GabesTV/1.0 (Android TV; TCL SmartTV)")
                     .build()
 
                 val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw IllegalStateException("Failed to download playlist: HTTP ${response.code}")
-                }
-                response.body?.byteStream() ?: throw IllegalStateException("Empty response body")
+                if (response.isSuccessful) {
+                    response.body?.byteStream()?.use { stream ->
+                        parser.parsePlaylist(stream.reader(), "GabesTV Cloud")
+                    }
+                } else null
+            }.getOrNull()
+
+            val finalPlaylist = if (parsedPlaylist != null && parsedPlaylist.channels.isNotEmpty()) {
+                parsedPlaylist
             } else {
-                context.assets.open("sample_channels.m3u")
+                context.assets.open("sample_channels.m3u").use { stream ->
+                    parser.parsePlaylist(stream.reader(), "GabesTV Local")
+                }
             }
 
-            inputStream.use { stream ->
-                val playlist = parser.parsePlaylist(stream.reader(), "GabesTV Playlist")
-                cachedPlaylist = playlist
-                playlist
-            }
+            cachedPlaylist = finalPlaylist
+            finalPlaylist
         }
     }
 
