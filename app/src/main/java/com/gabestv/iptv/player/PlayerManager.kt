@@ -200,11 +200,34 @@ class PlayerManager(
 
     private fun handlePlaybackError(error: PlaybackException) {
         android.util.Log.e("GabesTV_Player", "Playback error for ${currentChannel?.name}: ${error.errorCodeName} (${error.errorCode})", error)
+
+        // Non-recoverable errors (decoding or invalid container format)
+        val isUnrecoverable = error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+
+        if (isUnrecoverable) {
+            _playerState.value = PlayerState.Error(
+                message = "Formato de stream incompatível (${error.errorCodeName}). Troque de canal.",
+                isRetrying = false
+            )
+            return
+        }
+
         if (retryCount < MAX_RETRIES && currentChannel != null) {
             retryCount++
-            val delayMs = BASE_RETRY_DELAY_MS * retryCount
+            // Exponential backoff: 2s, 4s, 8s, 10s, 10s
+            val delayMs = (BASE_RETRY_DELAY_MS * (1L shl (retryCount - 1))).coerceAtMost(10_000L)
+
+            val statusDetail = when (error.errorCode) {
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "Falha de conexão"
+                PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> "Erro no servidor de streaming"
+                else -> "Instabilidade no stream"
+            }
+
             _playerState.value = PlayerState.Error(
-                message = "Conexão instável. Reconectando (${retryCount}/$MAX_RETRIES)…",
+                message = "$statusDetail. Reconectando (${retryCount}/$MAX_RETRIES)…",
                 isRetrying = true
             )
 
@@ -215,9 +238,16 @@ class PlayerManager(
             }
         } else {
             _playerState.value = PlayerState.Error(
-                message = "Stream indisponível (HTTP ${error.errorCode}). Verifique o Threadfin.",
+                message = "Stream indisponível (${error.errorCodeName}). Use ◀ / ▶ para trocar de canal.",
                 isRetrying = false
             )
+        }
+    }
+
+    fun retryCurrent() {
+        currentChannel?.let {
+            retryCount = 0
+            play(it)
         }
     }
 

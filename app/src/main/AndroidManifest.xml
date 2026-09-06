@@ -8,17 +8,17 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Android TV Leanback Requirement -->
+    <!-- Android TV Leanback Requirement: false allows installation on Phones & Tablets -->
     <uses-feature
         android:name="android.software.leanback"
-        android:required="true" />
+        android:required="false" />
 
-    <!-- Touchscreen NOT Required (Mandatory for TV OS / TCL Google TV compatibility) -->
+    <!-- Touchscreen NOT Required: allows TV remote operation, but functions with touch on phones -->
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
 
-    <!-- Disable Mobile-only Hardware Requirements -->
+    <!-- Disable Mobile-only Hardware Requirements to maintain 100% TV compatibility -->
     <uses-feature
         android:name="android.hardware.faketouch"
         android:required="false" />
@@ -42,7 +42,7 @@
         android:required="false" />
     <uses-feature
         android:name="android.hardware.screen.landscape"
-        android:required="true" />
+        android:required="false" />
 
     <application
         android:name=".GabesTVApplication"
@@ -53,7 +53,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.GabesTV"
-        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="34">
 
         <activity
@@ -61,7 +61,8 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="sensorLandscape">
+            android:supportsPictureInPicture="true"
+            android:screenOrientation="unspecified">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />

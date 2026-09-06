@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,10 +19,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,37 +36,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.gabestv.iptv.model.Channel
-import com.gabestv.iptv.ui.theme.GabesTVTheme
+import com.gabestv.iptv.ui.theme.CyberPurple
+import com.gabestv.iptv.ui.theme.ElectricCyan
+import com.gabestv.iptv.ui.theme.NeonRed
+import com.gabestv.iptv.ui.theme.SurfaceDark
+import com.gabestv.iptv.ui.theme.SurfaceVariantDark
 
 /**
- * TV Channel Card designed for 10-foot viewing distance.
- *
- * Implements Android TV D-Pad focus feedback:
- * - 1.08x scale-up when focused
- * - Glowing accent border
- * - Elevation drop-shadow on focus
+ * Modern Channel Card designed for both 10-foot TV viewing (D-Pad zoom & glow)
+ * and mobile/tablet responsive touch interaction.
  */
 @Composable
 fun ChannelCard(
     channel: Channel,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
 ) {
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val quality = extractChannelQuality(channel.name)
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.08f else 1.0f,
@@ -69,13 +73,16 @@ fun ChannelCard(
     )
 
     val borderColor by animateColorAsState(
-        targetValue = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+        targetValue = when {
+            isFocused -> CyberPurple
+            else -> Color(0xFF26253B)
+        },
         animationSpec = tween(durationMillis = 180),
         label = "borderColor"
     )
 
     val backgroundColor by animateColorAsState(
-        targetValue = if (isFocused) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+        targetValue = if (isFocused) SurfaceVariantDark else SurfaceDark,
         animationSpec = tween(durationMillis = 180),
         label = "bgColor"
     )
@@ -84,33 +91,33 @@ fun ChannelCard(
         modifier = modifier
             .scale(scale)
             .shadow(
-                elevation = if (isFocused) 16.dp else 2.dp,
-                shape = RoundedCornerShape(12.dp),
-                spotColor = MaterialTheme.colorScheme.primary
+                elevation = if (isFocused) 18.dp else 3.dp,
+                shape = RoundedCornerShape(14.dp),
+                spotColor = CyberPurple
             )
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(backgroundColor)
-            .border(2.dp, borderColor, RoundedCornerShape(12.dp))
+            .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(14.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
             .focusable(interactionSource = interactionSource)
-            .aspectRatio(16f / 10f)
+            .aspectRatio(16f / 10.5f)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(10.dp)
         ) {
-            // Channel Logo Area
+            // Channel Logo Preview Area
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF14131E)),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF0C0B14)),
                 contentAlignment = Alignment.Center
             ) {
                 if (!channel.logoUrl.isNullOrBlank()) {
@@ -126,59 +133,70 @@ fun ChannelCard(
                     Icon(
                         imageVector = Icons.Default.LiveTv,
                         contentDescription = null,
-                        tint = if (isFocused) MaterialTheme.colorScheme.primary else Color.Gray,
+                        tint = if (isFocused) ElectricCyan else Color(0xFF6B6E8C),
                         modifier = Modifier.size(36.dp)
                     )
                 }
 
-                // Category Tag
-                Box(
+                // Badges Row (Top End: Category Tag / Quality Badge)
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Black.copy(alpha = 0.7f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = channel.groupTitle,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.LightGray
-                    )
+                    quality?.let {
+                        QualityBadge(quality = it)
+                        Spacer(modifier = Modifier.size(4.dp))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.Black.copy(alpha = 0.7f))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = channel.groupTitle,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.LightGray,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                // Favorite Button (Top Start, if action provided)
+                if (onToggleFavorite != null) {
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .size(28.dp)
+                            .padding(3.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorito",
+                            tint = if (isFavorite) NeonRed else Color.LightGray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Channel Name
+            // Channel Title
             Text(
                 text = channel.name,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 14.sp,
-                    fontWeight = if (isFocused) FontWeight.Bold else FontWeight.SemiBold
-                ),
-                color = if (isFocused) Color.White else MaterialTheme.colorScheme.onSurface,
+                fontSize = 13.5.sp,
+                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.SemiBold,
+                color = if (isFocused) Color.White else Color(0xFFF0F0F5),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Preview(device = Devices.TV_1080p, showBackground = true, backgroundColor = 0xFF0F0E17)
-@Composable
-fun ChannelCardPreview() {
-    GabesTVTheme {
-        Box(modifier = Modifier.padding(32.dp)) {
-            ChannelCard(
-                channel = Channel(
-                    name = "ESPN HD Live",
-                    streamUrl = "https://stream.example.com/espn.m3u8",
-                    groupTitle = "Sports",
-                    logoUrl = null
-                ),
-                onClick = {}
             )
         }
     }

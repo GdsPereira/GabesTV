@@ -1,12 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="320dp"
     android:height="180dp"
     android:viewportWidth="320"
     android:viewportHeight="180">
+
+    <!-- Cinema Dark Background -->
     <path
-        android:fillColor="#1E1E2E"
-        android:pathData="M0,0h320v180h-320z" />
+        android:pathData="M0,0h320v180h-320z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="0"
+                android:startY="0"
+                android:endX="320"
+                android:endY="180"
+                android:type="linear">
+                <item android:color="#161328" android:offset="0.0" />
+                <item android:color="#0D0C18" android:offset="0.5" />
+                <item android:color="#07060D" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Ambient Glow behind Emblem on Left -->
     <path
-        android:fillColor="#E0B0FF"
-        android:pathData="M160,50 L200,120 L120,120 Z" />
+        android:pathData="M80,40 A50,50 0 1,0 80,140 A50,50 0 1,0 80,40 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="80"
+                android:centerY="90"
+                android:gradientRadius="60"
+                android:type="radial">
+                <item android:color="#407C4DFF" android:offset="0.0" />
+                <item android:color="#2000E5FF" android:offset="0.5" />
+                <item android:color="#00000000" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- TV Frame Antenna -->
+    <path
+        android:pathData="M72,50 L64,40 M88,50 L96,40"
+        android:strokeWidth="3"
+        android:strokeColor="#7C4DFF"
+        android:strokeLineCap="round" />
+
+    <!-- Stylized Modern TV Frame -->
+    <path
+        android:pathData="M48,51 C41,51 38,54 38,61 L38,111 C38,118 41,121 48,121 L112,121 C119,121 122,118 122,111 L122,61 C122,54 119,51 112,51 Z"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="38"
+                android:startY="51"
+                android:endX="122"
+                android:endY="121"
+                android:type="linear">
+                <item android:color="#00E5FF" android:offset="0.0" />
+                <item android:color="#7C4DFF" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- TV Stand -->
+    <path
+        android:pathData="M70,122 L67,132 L93,132 L90,122"
+        android:strokeWidth="2.8"
+        android:strokeColor="#7C4DFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Emblem: 'G' Sweep -->
+    <path
+        android:pathData="M92,69 C88,65 81,63 74,64 C64,66 57,75 57,86 C57,97 64,106 74,109 C84,111 93,106 97,99 C99,95 100,90 100,86 L80,86"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="57"
+                android:startY="63"
+                android:endX="100"
+                android:endY="109"
+                android:type="linear">
+                <item android:color="#00E5FF" android:offset="0.0" />
+                <item android:color="#A78BFA" android:offset="0.5" />
+                <item android:color="#7C4DFF" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Play Triangle Inside G -->
+    <path
+        android:pathData="M71,78 L85,86 L71,94 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="71"
+                android:startY="78"
+                android:endX="85"
+                android:endY="94"
+                android:type="linear">
+                <item android:color="#00E5FF" android:offset="0.0" />
+                <item android:color="#7C4DFF" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Red Live Indicator Dot -->
+    <path
+        android:pathData="M114,60 A2.5,2.5 0 1,0 114,60.01"
+        android:strokeWidth="5"
+        android:strokeColor="#FF2A55"
+        android:strokeLineCap="round" />
+
+    <!-- Typography: 'G' -->
+    <path
+        android:pathData="M162,72 C156,72 150,77 150,86 C150,95 156,100 162,100 C167,100 171,97 173,93 L173,88 L163,88 M173,88 L173,99"
+        android:strokeWidth="3.8"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Typography: 'a' -->
+    <path
+        android:pathData="M188,88 C188,82 181,80 178,85 C176,88 176,95 178,98 C181,101 188,99 188,94 L188,84 L188,100"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Typography: 'b' -->
+    <path
+        android:pathData="M195,74 L195,100 M195,88 C197,82 206,82 206,91 C206,100 197,100 195,95"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Typography: 'e' -->
+    <path
+        android:pathData="M213,91 L224,91 C224,84 213,82 213,90 C213,98 223,99 225,95"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Typography: 's' -->
+    <path
+        android:pathData="M239,85 C237,82 231,82 231,87 C231,93 241,92 241,97 C241,101 234,101 231,98"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+
+    <!-- Typography: 'TV' in Accent Cyan -->
+    <!-- 'T' -->
+    <path
+        android:pathData="M250,76 L264,76 M257,76 L257,100"
+        android:strokeWidth="4"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round" />
+    <!-- 'V' -->
+    <path
+        android:pathData="M266,76 L273,100 L280,76"
+        android:strokeWidth="4"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Glowing Accent Divider Line Under Title -->
+    <path
+        android:pathData="M150,108 L280,108"
+        android:strokeWidth="2"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="150"
+                android:startY="108"
+                android:endX="280"
+                android:endY="108"
+                android:type="linear">
+                <item android:color="#7C4DFF" android:offset="0.0" />
+                <item android:color="#00E5FF" android:offset="0.7" />
+                <item android:color="#00000000" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtitle: ULTRA HD STREAMING -->
+    <path
+        android:pathData="M150,119 L153,119 M156,119 L162,119 M165,119 L175,119 M178,119 L186,119 M190,119 L200,119 M203,119 L213,119 M216,119 L225,119 M228,119 L240,119 M243,119 L255,119"
+        android:strokeWidth="1.6"
+        android:strokeColor="#A7A9BE"
+        android:strokeLineCap="round" />
+
 </vector>

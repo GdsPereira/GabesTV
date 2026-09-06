@@ -6,46 +6,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Background Base -->
-    <path
-        android:pathData="M0,0h108v108h-108z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:centerX="54"
-                android:centerY="54"
-                android:gradientRadius="72"
-                android:type="radial">
-                <item android:color="#1A182E" android:offset="0.0" />
-                <item android:color="#0F0E1A" android:offset="0.6" />
-                <item android:color="#08070D" android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Ambient Glow -->
-    <path
-        android:pathData="M54,26 A28,28 0 1,0 54,82 A28,28 0 1,0 54,26 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:centerX="54"
-                android:centerY="54"
-                android:gradientRadius="28"
-                android:type="radial">
-                <item android:color="#4D7C4DFF" android:offset="0.0" />
-                <item android:color="#1A00E5FF" android:offset="0.5" />
-                <item android:color="#00000000" android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Antenna / Signal Rays -->
+    <!-- Subtle Antenna / Signal Ray -->
     <path
         android:pathData="M48,27 L42,21 M60,27 L66,21"
         android:strokeWidth="2.5"
         android:strokeColor="#7C4DFF"
         android:strokeLineCap="round" />
 
-    <!-- Stylized Modern TV Outer Frame -->
+    <!-- Stylized Modern OLED TV Outer Frame -->
     <path
         android:pathData="M31,28 C26,28 24,30 24,35 L24,67 C24,72 26,74 31,74 L77,74 C82,74 84,72 84,67 L84,35 C84,30 82,28 77,28 Z"
         android:strokeWidth="2.8"
@@ -72,7 +40,8 @@
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- Modern 'G' Sweep -->
+    <!-- Modern "G" + "Play" Emblem Inside Screen -->
+    <!-- Curved 'G' outer sweep -->
     <path
         android:pathData="M62,40 C59,37 54,36 49,37 C42,39 37,45 37,52 C37,59 42,65 49,67 C56,68 62,65 65,60 C66.5,57.5 67,54 67,52 L52,52"
         android:strokeWidth="4"
@@ -108,7 +77,7 @@
         </aapt:attr>
     </path>
 
-    <!-- Live Pulse Indicator -->
+    <!-- Tiny Live Pulse Dot at the top right of TV screen -->
     <path
         android:pathData="M78,34 A1.8,1.8 0 1,0 78,34.01"
         android:strokeWidth="3.6"
