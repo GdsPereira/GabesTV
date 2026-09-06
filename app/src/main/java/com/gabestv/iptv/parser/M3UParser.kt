@@ -152,15 +152,16 @@ class M3UParser {
 
                     else -> {
                         // Any non-empty, non-comment line is treated as the Stream URL
-                        if (pendingExtInf != null) {
+                        val currentExtInf = pendingExtInf
+                        if (currentExtInf != null) {
                             val streamUrl = line
                             val group = pendingGroupOverride
-                                ?: pendingExtInf.attributes["group-title"]
+                                ?: currentExtInf.attributes["group-title"]
                                 ?: Channel.DEFAULT_GROUP
 
                             val channelName = when {
-                                pendingExtInf.channelName.isNotBlank() -> pendingExtInf.channelName
-                                !pendingExtInf.attributes["tvg-name"].isNullOrBlank() -> pendingExtInf.attributes["tvg-name"]!!
+                                currentExtInf.channelName.isNotBlank() -> currentExtInf.channelName
+                                !currentExtInf.attributes["tvg-name"].isNullOrBlank() -> currentExtInf.attributes["tvg-name"]!!
                                 else -> "Channel ${UUID.randomUUID().toString().take(6)}"
                             }
 
@@ -168,11 +169,11 @@ class M3UParser {
                                 id = UUID.randomUUID().toString(),
                                 name = channelName,
                                 streamUrl = streamUrl,
-                                logoUrl = pendingExtInf.attributes["tvg-logo"]?.takeIf { it.isNotBlank() },
+                                logoUrl = currentExtInf.attributes["tvg-logo"]?.takeIf { it.isNotBlank() },
                                 groupTitle = group.trim().ifEmpty { Channel.DEFAULT_GROUP },
-                                tvgId = pendingExtInf.attributes["tvg-id"]?.takeIf { it.isNotBlank() },
-                                tvgName = pendingExtInf.attributes["tvg-name"]?.takeIf { it.isNotBlank() },
-                                tvgChno = pendingExtInf.attributes["tvg-chno"]?.takeIf { it.isNotBlank() },
+                                tvgId = currentExtInf.attributes["tvg-id"]?.takeIf { it.isNotBlank() },
+                                tvgName = currentExtInf.attributes["tvg-name"]?.takeIf { it.isNotBlank() },
+                                tvgChno = currentExtInf.attributes["tvg-chno"]?.takeIf { it.isNotBlank() },
                                 httpUserAgent = pendingUserAgent,
                                 httpReferrer = pendingReferrer
                             )

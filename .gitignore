@@ -18,3 +18,5 @@ local.properties
 *.jks
 *.keystore
 secrets.properties
+
+*.hprof
