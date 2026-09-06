@@ -29,9 +29,15 @@ import com.gabestv.iptv.ui.theme.GabesTVTheme
 import com.gabestv.iptv.viewmodel.MainUiState
 import com.gabestv.iptv.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import okhttp3.OkHttpClient
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var okHttpClient: OkHttpClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -68,6 +74,7 @@ class MainActivity : ComponentActivity() {
                             // Fullscreen Video Player Mode with D-Pad Zapping
                             PlayerScreen(
                                 channel = activeChannel,
+                                okHttpClient = okHttpClient,
                                 onZapNext = { viewModel.zapNext() },
                                 onZapPrevious = { viewModel.zapPrevious() },
                                 onClosePlayer = { viewModel.closePlayer() }

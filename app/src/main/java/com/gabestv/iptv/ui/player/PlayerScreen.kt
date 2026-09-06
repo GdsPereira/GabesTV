@@ -60,6 +60,7 @@ import com.gabestv.iptv.model.Channel
 import com.gabestv.iptv.player.PlayerManager
 import com.gabestv.iptv.player.PlayerState
 import kotlinx.coroutines.delay
+import okhttp3.OkHttpClient
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -68,14 +69,19 @@ fun PlayerScreen(
     onZapNext: () -> Unit,
     onZapPrevious: () -> Unit,
     onClosePlayer: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    okHttpClient: OkHttpClient? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
-    val playerManager = remember {
-        PlayerManager(context, coroutineScope)
+    val playerManager = remember(okHttpClient) {
+        PlayerManager(
+            context = context,
+            coroutineScope = coroutineScope,
+            okHttpClient = okHttpClient ?: PlayerManager.defaultOkHttpClient
+        )
     }
 
     val playerState by playerManager.playerState.collectAsState()

@@ -7,7 +7,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -22,6 +22,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 sealed interface PlayerState {
     data object Idle : PlayerState
@@ -38,7 +45,8 @@ sealed interface PlayerState {
 @OptIn(UnstableApi::class)
 class PlayerManager(
     private val context: Context,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
+    private val okHttpClient: OkHttpClient = defaultOkHttpClient
 ) {
     private var exoPlayer: ExoPlayer? = null
     private var currentChannel: Channel? = null
@@ -55,6 +63,34 @@ class PlayerManager(
         private const val MAX_RETRIES = 5
         private const val BASE_RETRY_DELAY_MS = 2000L
         private const val DEFAULT_USER_AGENT = "GabesTV/1.0 (Android TV; TCL SmartTV; ExoPlayer)"
+
+        val defaultOkHttpClient: OkHttpClient by lazy {
+            createPermissiveOkHttpClient()
+        }
+
+        fun createPermissiveOkHttpClient(): OkHttpClient {
+            val trustAllCerts = arrayOf<TrustManager>(
+                object : X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                }
+            )
+
+            val sslContext = SSLContext.getInstance("SSL").apply {
+                init(null, trustAllCerts, SecureRandom())
+            }
+
+            return OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+                .hostnameVerifier { _, _ -> true }
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .build()
+        }
     }
 
     fun getPlayer(): ExoPlayer {
@@ -137,11 +173,8 @@ class PlayerManager(
     private fun buildMediaSource(channel: Channel): MediaSource {
         val userAgent = channel.httpUserAgent ?: DEFAULT_USER_AGENT
 
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+        val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent(userAgent)
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
-            .setAllowCrossProtocolRedirects(true)
 
         if (!channel.httpReferrer.isNullOrBlank()) {
             httpDataSourceFactory.setDefaultRequestProperties(
@@ -166,6 +199,7 @@ class PlayerManager(
     }
 
     private fun handlePlaybackError(error: PlaybackException) {
+        android.util.Log.e("GabesTV_Player", "Playback error for ${currentChannel?.name}: ${error.errorCodeName} (${error.errorCode})", error)
         if (retryCount < MAX_RETRIES && currentChannel != null) {
             retryCount++
             val delayMs = BASE_RETRY_DELAY_MS * retryCount

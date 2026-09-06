@@ -49,7 +49,19 @@ class ChannelRepository @Inject constructor(
             }.getOrNull()
 
             val finalPlaylist = if (parsedPlaylist != null && parsedPlaylist.channels.isNotEmpty()) {
-                parsedPlaylist
+                val sanitizedChannels = parsedPlaylist.channels.map { channel ->
+                    val fixedUrl = if (channel.streamUrl.contains("/stream/")) {
+                        val streamPath = channel.streamUrl.substring(channel.streamUrl.indexOf("/stream/"))
+                        "https://tv.gabesp.com.br$streamPath"
+                    } else {
+                        channel.streamUrl
+                            .replace("http://167.126.15.40:34400", "https://tv.gabesp.com.br")
+                            .replace("https://167.126.15.40:34400", "https://tv.gabesp.com.br")
+                            .replace("http://localhost:34400", "https://tv.gabesp.com.br")
+                    }
+                    channel.copy(streamUrl = fixedUrl)
+                }
+                parsedPlaylist.copy(channels = sanitizedChannels)
             } else {
                 context.assets.open("sample_channels.m3u").use { stream ->
                     parser.parsePlaylist(stream.reader(), "GabesTV Local")
