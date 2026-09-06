@@ -23,7 +23,7 @@ class ChannelRepository @Inject constructor(
     private var cachedPlaylist: Playlist? = null
 
     companion object {
-        const val DEFAULT_THREADFIN_URL = "http://167.126.15.40:34400/m3u/threadfin.m3u"
+        const val DEFAULT_THREADFIN_URL = "https://tv.gabesp.com.br/m3u/threadfin.m3u"
     }
 
     /**

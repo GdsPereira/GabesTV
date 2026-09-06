@@ -149,7 +149,7 @@ Por padrão, o GabesTV busca sua lista no endpoint configurado no repositório (
 
 ```kotlin
 companion object {
-    const val DEFAULT_THREADFIN_URL = "http://SEU_SERVIDOR_THREADFIN:34400/m3u/threadfin.m3u"
+    const val DEFAULT_THREADFIN_URL = "https://tv.gabesp.com.br/m3u/threadfin.m3u"
 }
 ```
 
