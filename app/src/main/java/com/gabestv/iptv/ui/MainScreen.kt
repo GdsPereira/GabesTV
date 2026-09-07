@@ -3,18 +3,26 @@ package com.gabestv.iptv.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import kotlinx.collections.immutable.toImmutableList
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
+import kotlinx.collections.immutable.ImmutableList
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,8 +45,8 @@ import com.gabestv.iptv.viewmodel.MainViewModel
 
 @Composable
 fun MainScreen(
-    categories: List<ChannelCategory>,
-    channels: List<Channel>,
+    categories: ImmutableList<ChannelCategory>,
+    channels: ImmutableList<Channel>,
     selectedCategoryId: String?,
     onCategorySelected: (String) -> Unit,
     onChannelClick: (Channel) -> Unit,
@@ -93,6 +101,7 @@ fun MainScreen(
         modifier = modifier
             .fillMaxSize()
             .background(DeepDarkBackground)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
     ) {
         // Left Side Navigation Drawer
         CategoryDrawer(
@@ -143,7 +152,7 @@ fun MainScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(filteredChannels, key = { it.id }) { channel ->
+                items(filteredChannels, key = { it.id }, contentType = { "channel" }) { channel ->
                     ChannelCard(
                         channel = channel,
                         isFavorite = favoriteChannelIds.contains(channel.id),
@@ -184,8 +193,8 @@ fun MainScreenPreview() {
 
     GabesTVTheme {
         MainScreen(
-            categories = sampleCategories,
-            channels = sampleChannels,
+            categories = sampleCategories.toImmutableList(),
+            channels = sampleChannels.toImmutableList(),
             selectedCategoryId = "sports",
             onCategorySelected = {},
             onChannelClick = {}

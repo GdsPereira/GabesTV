@@ -25,12 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 sealed interface PlayerState {
     data object Idle : PlayerState
@@ -64,28 +59,9 @@ class PlayerManager(
     companion object {
         private const val MAX_RETRIES = 5
         private const val BASE_RETRY_DELAY_MS = 2000L
-        private const val DEFAULT_USER_AGENT = "GabesTV/1.0 (Android TV; TCL SmartTV; ExoPlayer)"
 
         val defaultOkHttpClient: OkHttpClient by lazy {
-            createPermissiveOkHttpClient()
-        }
-
-        fun createPermissiveOkHttpClient(): OkHttpClient {
-            val trustAllCerts = arrayOf<TrustManager>(
-                object : X509TrustManager {
-                    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                }
-            )
-
-            val sslContext = SSLContext.getInstance("SSL").apply {
-                init(null, trustAllCerts, SecureRandom())
-            }
-
-            return OkHttpClient.Builder()
-                .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-                .hostnameVerifier { _, _ -> true }
+            OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
@@ -154,7 +130,6 @@ class PlayerManager(
         val player = getPlayer()
         val mediaSource = buildMediaSource(channel)
 
-        player.stop()
         player.setMediaSource(mediaSource)
         player.prepare()
         player.playWhenReady = true
@@ -173,7 +148,7 @@ class PlayerManager(
      * Builds a MediaSource capable of playing both HLS (.m3u8) and MPEG-TS (.ts) from Threadfin.
      */
     private fun buildMediaSource(channel: Channel): MediaSource {
-        val userAgent = channel.httpUserAgent ?: DEFAULT_USER_AGENT
+        val userAgent = channel.httpUserAgent ?: com.gabestv.iptv.AppConstants.USER_AGENT
 
         val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent(userAgent)

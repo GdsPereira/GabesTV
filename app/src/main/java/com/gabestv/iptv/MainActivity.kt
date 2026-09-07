@@ -1,9 +1,16 @@
 package com.gabestv.iptv
 
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +25,15 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.Alignment
+import kotlinx.collections.immutable.toImmutableList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -39,6 +47,7 @@ import com.gabestv.iptv.ui.theme.CyberPurple
 import com.gabestv.iptv.ui.theme.DeepDarkBackground
 import com.gabestv.iptv.ui.theme.GabesTVTheme
 import com.gabestv.iptv.ui.util.LocalDeviceType
+import com.gabestv.iptv.ui.util.detectDeviceType
 import com.gabestv.iptv.ui.util.rememberDeviceType
 import com.gabestv.iptv.viewmodel.MainUiState
 import com.gabestv.iptv.viewmodel.MainViewModel
@@ -52,8 +61,28 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var okHttpClient: OkHttpClient
 
+    var isInPipMode by mutableStateOf(false)
+        private set
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val isTv = detectDeviceType(this, resources.configuration).isTv
+        if (!isTv) {
+            enableEdgeToEdge()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val targetMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                } else {
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+                window.attributes = window.attributes.apply {
+                    layoutInDisplayCutoutMode = targetMode
+                }
+            }
+            hideSystemBars()
+        }
+
         setContent {
             val deviceType = rememberDeviceType()
 
@@ -78,18 +107,18 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Keep screen awake while active video playback is in progress
+                    LaunchedEffect(activePlaying) {
+                        if (activePlaying != null) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+
                     // Auto-refresh playlist when app returns to foreground (e.g., categories added in backend)
-                    val lifecycleOwner = LocalLifecycleOwner.current
-                    DisposableEffect(lifecycleOwner) {
-                        val observer = LifecycleEventObserver { _, event ->
-                            if (event == Lifecycle.Event.ON_RESUME) {
-                                viewModel.loadPlaylist()
-                            }
-                        }
-                        lifecycleOwner.lifecycle.addObserver(observer)
-                        onDispose {
-                            lifecycleOwner.lifecycle.removeObserver(observer)
-                        }
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                        viewModel.loadPlaylist()
                     }
 
                     when (val uiState = state) {
@@ -129,14 +158,15 @@ class MainActivity : ComponentActivity() {
                                 PlayerScreen(
                                     channel = activeChannel,
                                     okHttpClient = okHttpClient,
+                                    isInPipMode = isInPipMode,
                                     onZapNext = { viewModel.zapNext() },
                                     onZapPrevious = { viewModel.zapPrevious() },
                                     onClosePlayer = { viewModel.closePlayer() }
                                 )
                             } else {
                                 MainScreen(
-                                    categories = uiState.playlist.categories,
-                                    channels = uiState.playlist.channels,
+                                    categories = uiState.playlist.categories.toImmutableList(),
+                                    channels = uiState.playlist.channels.toImmutableList(),
                                     selectedCategoryId = uiState.selectedCategoryId,
                                     searchQuery = uiState.searchQuery,
                                     favoriteChannelIds = uiState.favoriteChannelIds,
@@ -198,6 +228,45 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemBars()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemBars()
+        }
+    }
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode = isInPictureInPictureMode
+        if (!isInPictureInPictureMode) {
+            hideSystemBars()
+        }
+    }
+
+    /**
+     * Hides system bars with transient swipe-to-reveal behavior on touch/mobile devices,
+     * preserving native Leanback behavior on Android TV.
+     */
+    private fun hideSystemBars() {
+        val isTv = detectDeviceType(this, resources.configuration).isTv
+        if (!isTv) {
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                hide(WindowInsetsCompat.Type.systemBars())
             }
         }
     }

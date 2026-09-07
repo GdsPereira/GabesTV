@@ -2,6 +2,7 @@ package com.gabestv.iptv.data
 
 import android.content.Context
 import android.util.Log
+import com.gabestv.iptv.AppConstants
 import com.gabestv.iptv.BuildConfig
 import com.gabestv.iptv.model.Channel
 import com.gabestv.iptv.model.ChannelCategory
@@ -9,6 +10,8 @@ import com.gabestv.iptv.model.Playlist
 import com.gabestv.iptv.parser.M3UParser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -22,6 +25,7 @@ class ChannelRepository @Inject constructor(
     private val parser: M3UParser,
     private val okHttpClient: OkHttpClient
 ) {
+    private val mutex = Mutex()
     private var cachedPlaylist: Playlist? = null
 
     companion object {
@@ -44,7 +48,7 @@ class ChannelRepository @Inject constructor(
         val parsedPlaylist: Playlist? = try {
             val request = Request.Builder()
                 .url(targetUrl)
-                .header("User-Agent", "GabesTV/1.0 (Android TV; TCL SmartTV)")
+                .header("User-Agent", AppConstants.USER_AGENT)
                 .header("Cache-Control", "no-cache, no-store")
                 .build()
 
@@ -65,26 +69,11 @@ class ChannelRepository @Inject constructor(
         }
 
         if (parsedPlaylist != null && parsedPlaylist.channels.isNotEmpty()) {
-            val backendBase = BASE_BACKEND_URL.trimEnd('/')
             val sanitizedChannels = parsedPlaylist.channels.map { channel ->
-                val streamUrl = channel.streamUrl.trim()
-                val fixedUrl = when {
-                    streamUrl.contains("/stream/") -> {
-                        val streamPath = streamUrl.substring(streamUrl.indexOf("/stream/"))
-                        "$backendBase$streamPath"
-                    }
-                    streamUrl.startsWith("http://localhost:34400") -> {
-                        streamUrl.replace("http://localhost:34400", backendBase)
-                    }
-                    streamUrl.startsWith("https://localhost:34400") -> {
-                        streamUrl.replace("https://localhost:34400", backendBase)
-                    }
-                    else -> streamUrl
-                }
-                channel.copy(streamUrl = fixedUrl)
+                channel.copy(streamUrl = sanitizeStreamUrl(channel.streamUrl))
             }
             val finalPlaylist = parsedPlaylist.copy(channels = sanitizedChannels)
-            cachedPlaylist = finalPlaylist
+            mutex.withLock { cachedPlaylist = finalPlaylist }
             Result.success(finalPlaylist)
         } else {
             // Remote failed or returned 0 channels; execute local fallback
@@ -94,7 +83,7 @@ class ChannelRepository @Inject constructor(
                     parser.parsePlaylist(stream.reader(), "GabesTV Local")
                 }
                 if (localPlaylist.channels.isNotEmpty()) {
-                    cachedPlaylist = localPlaylist
+                    mutex.withLock { cachedPlaylist = localPlaylist }
                     Result.success(localPlaylist)
                 } else {
                     val errorMsg = "Fallback local carregou 0 canais. Erro remoto original: ${remoteError?.message ?: "Nenhum canal encontrado"}"
@@ -109,20 +98,20 @@ class ChannelRepository @Inject constructor(
         }
     }
 
-    fun getCachedPlaylist(): Playlist? = cachedPlaylist
+    fun getCachedPlaylist(): Playlist? = synchronized(this) { cachedPlaylist }
 
     /**
      * For unit testing: directly seed the cached playlist.
      */
     internal fun setCachedPlaylistForTest(playlist: Playlist?) {
-        cachedPlaylist = playlist
+        synchronized(this) { cachedPlaylist = playlist }
     }
 
     /**
      * Finds the next channel in the specified category (or currentChannel's category)
      * for instant TV D-Pad zapping (Right / CH+).
      */
-    fun getNextChannel(currentChannel: Channel, categoryName: String? = null): Channel {
+    fun getNextChannel(currentChannel: Channel, categoryName: String? = null): Channel = synchronized(this) {
         val list = cachedPlaylist?.channels ?: return currentChannel
         if (list.isEmpty()) return currentChannel
 
@@ -147,7 +136,7 @@ class ChannelRepository @Inject constructor(
      * Finds the previous channel in the specified category (or currentChannel's category)
      * for instant TV D-Pad zapping (Left / CH-).
      */
-    fun getPreviousChannel(currentChannel: Channel, categoryName: String? = null): Channel {
+    fun getPreviousChannel(currentChannel: Channel, categoryName: String? = null): Channel = synchronized(this) {
         val list = cachedPlaylist?.channels ?: return currentChannel
         if (list.isEmpty()) return currentChannel
 
@@ -166,6 +155,26 @@ class ChannelRepository @Inject constructor(
         } else {
             activeList.lastOrNull() ?: currentChannel
         }
+    }
+
+    /**
+     * Sanitizes stream URLs by replacing localhost references with the production backend.
+     * Uses URI parsing for robust host/port replacement.
+     */
+    private fun sanitizeStreamUrl(url: String): String {
+        val trimmed = url.trim()
+        val backendBase = BASE_BACKEND_URL.trimEnd('/')
+        if (trimmed.contains("/stream/")) {
+            val streamPath = trimmed.substring(trimmed.indexOf("/stream/"))
+            return "$backendBase$streamPath"
+        }
+        return try {
+            val uri = java.net.URI(trimmed)
+            if (uri.host == "localhost" && uri.port == 34400) {
+                val baseUri = java.net.URI(backendBase)
+                java.net.URI(baseUri.scheme, null, baseUri.host, baseUri.port, uri.path, uri.query, null).toString()
+            } else trimmed
+        } catch (_: Exception) { trimmed }
     }
 }
 

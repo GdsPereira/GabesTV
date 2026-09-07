@@ -1,9 +1,11 @@
 package com.gabestv.iptv.ui.player
 
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
+import com.gabestv.iptv.ui.util.findActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -73,7 +75,8 @@ fun PlayerScreen(
     onZapPrevious: () -> Unit,
     onClosePlayer: () -> Unit,
     modifier: Modifier = Modifier,
-    okHttpClient: OkHttpClient? = null
+    okHttpClient: OkHttpClient? = null,
+    isInPipMode: Boolean = false
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -94,8 +97,8 @@ fun PlayerScreen(
     var showTvHud by remember { mutableStateOf(true) }
     var resizeMode by remember { mutableStateOf(VideoResizeMode.FIT) }
 
-    // Intercept hardware Back button to exit player
-    BackHandler {
+    // Intercept hardware Back button to exit player (disabled in PiP so OS manages window)
+    BackHandler(enabled = !isInPipMode) {
         onClosePlayer()
     }
 
@@ -113,66 +116,72 @@ fun PlayerScreen(
         playerManager.play(channel)
     }
 
-    // Cleanup player when leaving screen
+    // Keep screen turned on while playing video to prevent OS screen dimming or timeout
     DisposableEffect(Unit) {
+        val activity = context.findActivity()
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // Cleanup player when leaving screen
+    DisposableEffect(playerManager) {
         onDispose {
             playerManager.release()
         }
     }
 
-    // Auto focus for D-Pad intercept on TV
+    // Auto focus for key event intercept (D-Pad on TV, Hardware keyboard on Tablet)
     LaunchedEffect(Unit) {
-        if (deviceType.isTv) {
-            focusRequester.requestFocus()
-        }
+        focusRequester.requestFocus()
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
-            .then(
-                if (deviceType.isTv) {
-                    Modifier
-                        .focusRequester(focusRequester)
-                        .focusable()
-                        .onKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown) {
-                                showTvHud = true
-                                when (event.key) {
-                                    // Channel Zapping (Next / Previous)
-                                    Key.DirectionRight, Key.ChannelUp -> {
-                                        onZapNext()
-                                        true
-                                    }
-                                    Key.DirectionLeft, Key.ChannelDown -> {
-                                        onZapPrevious()
-                                        true
-                                    }
-                                    // Play / Pause toggle or retry
-                                    Key.DirectionCenter, Key.Enter -> {
-                                        if (playerState is PlayerState.Error) {
-                                            playerManager.retryCurrent()
-                                        } else {
-                                            playerManager.togglePlayPause()
-                                        }
-                                        true
-                                    }
-                                    // Back to Grid
-                                    Key.Back, Key.Escape -> {
-                                        onClosePlayer()
-                                        true
-                                    }
-                                    Key.DirectionUp, Key.DirectionDown -> {
-                                        showTvHud = !showTvHud
-                                        true
-                                    }
-                                    else -> false
-                                }
-                            } else false
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    if (deviceType.isTv) {
+                        showTvHud = true
+                    }
+                    when (event.key) {
+                        // Channel Zapping (Next / Previous)
+                        Key.DirectionRight, Key.ChannelUp -> {
+                            onZapNext()
+                            true
                         }
-                } else Modifier
-            )
+                        Key.DirectionLeft, Key.ChannelDown -> {
+                            onZapPrevious()
+                            true
+                        }
+                        // Play / Pause toggle or retry (supports Enter, D-Pad Center, and Spacebar)
+                        Key.DirectionCenter, Key.Enter, Key.Spacebar -> {
+                            if (playerState is PlayerState.Error) {
+                                playerManager.retryCurrent()
+                            } else {
+                                playerManager.togglePlayPause()
+                            }
+                            true
+                        }
+                        // Back to Grid
+                        Key.Back, Key.Escape -> {
+                            onClosePlayer()
+                            true
+                        }
+                        Key.DirectionUp, Key.DirectionDown -> {
+                            if (deviceType.isTv) {
+                                showTvHud = !showTvHud
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
     ) {
         // Fullscreen ExoPlayer View with AspectRatio control
         AndroidView(
@@ -180,6 +189,7 @@ fun PlayerScreen(
                 PlayerView(ctx).apply {
                     player = playerManager.getPlayer()
                     useController = false
+                    keepScreenOn = true
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
@@ -187,6 +197,7 @@ fun PlayerScreen(
                 }
             },
             update = { playerView ->
+                playerView.keepScreenOn = true
                 playerView.resizeMode = when (resizeMode) {
                     VideoResizeMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
                     VideoResizeMode.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
@@ -196,196 +207,202 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Buffering & Error Indicator
-        when (val state = playerState) {
-            is PlayerState.Buffering -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = CyberPurple,
-                        strokeWidth = 4.dp,
-                        modifier = Modifier.size(56.dp)
-                    )
-                }
-            }
-            is PlayerState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.75f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
+        // Buffering & Error Indicator (hidden in PiP)
+        if (!isInPipMode) {
+            when (val state = playerState) {
+                is PlayerState.Buffering -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFFF5252),
-                            modifier = Modifier.size(48.dp)
+                        CircularProgressIndicator(
+                            color = CyberPurple,
+                            strokeWidth = 4.dp,
+                            modifier = Modifier.size(56.dp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = state.message,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        if (state.isRetrying) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            CircularProgressIndicator(
-                                color = CyberPurple,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            androidx.compose.material3.Button(
-                                onClick = { playerManager.retryCurrent() },
-                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                    containerColor = CyberPurple
-                                )
-                            ) {
-                                androidx.compose.material3.Text("Tentar Novamente", color = Color.White)
-                            }
-                        }
                     }
                 }
-            }
-            else -> Unit
-        }
-
-        // Overlay Controls: Touch-First on Phone/Tablet vs D-Pad HUD on TV
-        if (deviceType.isTouch) {
-            TouchPlayerControls(
-                channel = channel,
-                isPlaying = isPlaying,
-                onTogglePlayPause = {
-                    if (playerState is PlayerState.Error) {
-                        playerManager.retryCurrent()
-                    } else {
-                        playerManager.togglePlayPause()
-                    }
-                },
-                onZapNext = onZapNext,
-                onZapPrevious = onZapPrevious,
-                onClosePlayer = onClosePlayer,
-                onToggleResizeMode = {
-                    resizeMode = when (resizeMode) {
-                        VideoResizeMode.FIT -> VideoResizeMode.FILL
-                        VideoResizeMode.FILL -> VideoResizeMode.ZOOM
-                        VideoResizeMode.ZOOM -> VideoResizeMode.FIT
-                    }
-                },
-                resizeMode = resizeMode
-            )
-        } else {
-            // Android TV On-Screen Overlay (HUD)
-            AnimatedVisibility(
-                visible = showTvHud,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
-                    // Top Header Overlay
-                    Row(
+                is PlayerState.Error -> {
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.Black.copy(alpha = 0.8f))
-                            .padding(horizontal = 24.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.75f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Logo or Fallback
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF1B1A2C)),
-                            contentAlignment = Alignment.Center
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
                         ) {
-                            if (!channel.logoUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = channel.logoUrl,
-                                    contentDescription = channel.name,
-                                    modifier = Modifier.fillMaxSize().padding(6.dp)
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFF5252),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = state.message,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            if (state.isRetrying) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                CircularProgressIndicator(
+                                    color = CyberPurple,
+                                    modifier = Modifier.size(32.dp)
                                 )
                             } else {
-                                Icon(
-                                    imageVector = Icons.Default.LiveTv,
-                                    contentDescription = null,
-                                    tint = CyberPurple,
-                                    modifier = Modifier.size(28.dp)
-                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                androidx.compose.material3.Button(
+                                    onClick = { playerManager.retryCurrent() },
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = CyberPurple
+                                    )
+                                ) {
+                                    androidx.compose.material3.Text("Tentar Novamente", color = Color.White)
+                                }
                             }
                         }
+                    }
+                }
+                else -> Unit
+            }
+        }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+        // Overlay Controls: Touch-First on Phone/Tablet vs D-Pad HUD on TV (hidden in PiP)
+        if (!isInPipMode) {
+            if (deviceType.isTouch) {
+                TouchPlayerControls(
+                    channel = channel,
+                    isPlaying = isPlaying,
+                    onTogglePlayPause = {
+                        if (playerState is PlayerState.Error) {
+                            playerManager.retryCurrent()
+                        } else {
+                            playerManager.togglePlayPause()
+                        }
+                    },
+                    onZapNext = onZapNext,
+                    onZapPrevious = onZapPrevious,
+                    onClosePlayer = onClosePlayer,
+                    onToggleResizeMode = {
+                        resizeMode = when (resizeMode) {
+                            VideoResizeMode.FIT -> VideoResizeMode.FILL
+                            VideoResizeMode.FILL -> VideoResizeMode.ZOOM
+                            VideoResizeMode.ZOOM -> VideoResizeMode.FIT
+                        }
+                    },
+                    resizeMode = resizeMode
+                )
+            } else {
+                // Android TV On-Screen Overlay (HUD)
+                AnimatedVisibility(
+                    visible = showTvHud,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().padding(32.dp)) {
+                        // Top Header Overlay
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.Black.copy(alpha = 0.8f))
+                                .padding(horizontal = 24.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Logo or Fallback
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF1B1A2C)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!channel.logoUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = channel.logoUrl,
+                                        contentDescription = channel.name,
+                                        modifier = Modifier.fillMaxSize().padding(6.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.LiveTv,
+                                        contentDescription = null,
+                                        tint = CyberPurple,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
 
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                LiveBadge()
-                                Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    LiveBadge()
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = channel.name,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
                                 Text(
-                                    text = channel.name,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    text = channel.groupTitle,
+                                    fontSize = 12.sp,
+                                    color = Color.LightGray
                                 )
                             }
+
+                            Spacer(modifier = Modifier.weight(1f))
+
                             Text(
-                                text = channel.groupTitle,
+                                text = if (isPlaying) "Reproduzindo" else "Pausado",
                                 fontSize = 12.sp,
-                                color = Color.LightGray
+                                color = Color.LightGray,
+                                modifier = Modifier.padding(end = 12.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        Text(
-                            text = if (isPlaying) "Reproduzindo" else "Pausado",
-                            fontSize = 12.sp,
-                            color = Color.LightGray,
-                            modifier = Modifier.padding(end = 12.dp)
-                        )
-                    }
-
-                    // Bottom D-Pad Controller Guide
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.Black.copy(alpha = 0.8f))
-                            .padding(horizontal = 20.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "◀ / ▶ Zapping de Canal",
-                            fontSize = 12.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.width(24.dp))
-                        Text(
-                            text = "OK Pausar / Retomar",
-                            fontSize = 12.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.width(24.dp))
-                        Text(
-                            text = "Voltar Sair do Player",
-                            fontSize = 12.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
+                        // Bottom D-Pad Controller Guide
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.Black.copy(alpha = 0.8f))
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "◀ / ▶ Zapping de Canal",
+                                fontSize = 12.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.width(24.dp))
+                            Text(
+                                text = "OK Pausar / Retomar",
+                                fontSize = 12.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.width(24.dp))
+                            Text(
+                                text = "Voltar Sair do Player",
+                                fontSize = 12.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
+
+

@@ -64,7 +64,7 @@ fun ChannelCard(
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
 ) {
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val quality = extractChannelQuality(channel.name)
+    val quality = remember(channel.name) { extractChannelQuality(channel.name) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.08f else 1.0f,
@@ -103,7 +103,6 @@ fun ChannelCard(
                 indication = null,
                 onClick = onClick
             )
-            .focusable(interactionSource = interactionSource)
             .aspectRatio(16f / 10.5f)
     ) {
         Column(
