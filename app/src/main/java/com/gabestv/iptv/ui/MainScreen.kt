@@ -61,7 +61,7 @@ fun MainScreen(
 ) {
     val deviceType = LocalDeviceType.current
 
-    if (deviceType.isPhone) {
+    if (!deviceType.isTv) {
         MobileMainScreen(
             categories = categories,
             channels = channels,

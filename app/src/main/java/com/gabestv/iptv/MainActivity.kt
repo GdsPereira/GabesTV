@@ -25,13 +25,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import kotlinx.collections.immutable.toImmutableList
 import androidx.compose.ui.Modifier
@@ -76,9 +77,9 @@ class MainActivity : ComponentActivity() {
                 } else {
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 }
-                window.attributes = window.attributes.apply {
-                    layoutInDisplayCutoutMode = targetMode
-                }
+                val params = window.attributes
+                params.layoutInDisplayCutoutMode = targetMode
+                window.attributes = params
             }
             hideSystemBars()
         }
@@ -107,18 +108,23 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Keep screen awake while active video playback is in progress
-                    LaunchedEffect(activePlaying) {
-                        if (activePlaying != null) {
-                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        } else {
-                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        }
+                    // Keep screen awake continuously while app is in foreground
+                    DisposableEffect(Unit) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        onDispose { }
                     }
 
                     // Auto-refresh playlist when app returns to foreground (e.g., categories added in backend)
-                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-                        viewModel.loadPlaylist()
+                    DisposableEffect(this@MainActivity) {
+                        val observer = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_RESUME) {
+                                viewModel.loadPlaylist()
+                            }
+                        }
+                        lifecycle.addObserver(observer)
+                        onDispose {
+                            lifecycle.removeObserver(observer)
+                        }
                     }
 
                     when (val uiState = state) {
@@ -263,10 +269,14 @@ class MainActivity : ComponentActivity() {
     private fun hideSystemBars() {
         val isTv = detectDeviceType(this, resources.configuration).isTv
         if (!isTv) {
-            WindowCompat.getInsetsController(window, window.decorView).apply {
-                systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                hide(WindowInsetsCompat.Type.systemBars())
+            try {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    hide(WindowInsetsCompat.Type.systemBars())
+                }
+            } catch (_: Exception) {
+                // Prevent crash on legacy devices / custom vendor insets implementations
             }
         }
     }

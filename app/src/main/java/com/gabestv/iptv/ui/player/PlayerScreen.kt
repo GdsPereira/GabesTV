@@ -120,9 +120,7 @@ fun PlayerScreen(
     DisposableEffect(Unit) {
         val activity = context.findActivity()
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        onDispose { }
     }
 
     // Cleanup player when leaving screen

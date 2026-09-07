@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Default: deny all cleartext (HTTP) traffic -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Allow cleartext (HTTP) traffic for IPTV streams and local media servers -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
-
-    <!-- Cleartext only for local network (Threadfin/IPTV local providers) -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.0.0</domain>
-        <domain includeSubdomains="true">192.168.0.0</domain>
-    </domain-config>
 </network-security-config>
