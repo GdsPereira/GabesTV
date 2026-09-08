@@ -12,7 +12,6 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.Reader
 import java.io.StringReader
-import java.util.UUID
 
 /**
  * High-performance, memory-efficient M3U / M3U8 IPTV Playlist Parser.
@@ -162,11 +161,11 @@ class M3UParser {
                             val channelName = when {
                                 currentExtInf.channelName.isNotBlank() -> currentExtInf.channelName
                                 !currentExtInf.attributes["tvg-name"].isNullOrBlank() -> currentExtInf.attributes["tvg-name"]!!
-                                else -> "Channel ${UUID.randomUUID().toString().take(6)}"
+                                else -> "Channel ${streamUrl.hashCode().toString(16).takeLast(6)}"
                             }
 
                             val channel = Channel(
-                                id = UUID.randomUUID().toString(),
+                                id = Channel.generateId(streamUrl, channelName),
                                 name = channelName,
                                 streamUrl = streamUrl,
                                 logoUrl = currentExtInf.attributes["tvg-logo"]?.takeIf { it.isNotBlank() },

@@ -115,4 +115,19 @@ class M3UParserTest {
         assertThat(sportsCategory?.channelCount).isEqualTo(1)
         assertThat(uncatCategory?.channelCount).isEqualTo(1)
     }
+
+    @Test
+    fun parse_generatesDeterministicIdsAcrossMultipleParses() {
+        val raw = """
+            #EXTM3U
+            #EXTINF:-1 group-title="News",CNN Live
+            http://example.com/cnn.m3u8
+        """.trimIndent()
+
+        val parse1 = parser.parse(raw)
+        val parse2 = parser.parse(raw)
+
+        assertThat(parse1.first().id).isEqualTo(parse2.first().id)
+        assertThat(parse1.first().id).isEqualTo(Channel.generateId("http://example.com/cnn.m3u8", "CNN Live"))
+    }
 }

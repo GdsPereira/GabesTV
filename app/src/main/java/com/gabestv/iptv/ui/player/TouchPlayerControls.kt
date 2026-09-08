@@ -2,6 +2,8 @@ package com.gabestv.iptv.ui.player
 
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
+import com.gabestv.iptv.ui.util.findActivity
 import android.media.AudioManager
 import android.os.Build
 import android.view.WindowManager
@@ -16,11 +18,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -42,6 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -71,6 +79,12 @@ enum class VideoResizeMode {
     ZOOM
 }
 
+private enum class TouchGestureMode {
+    NONE,
+    BRIGHTNESS,
+    VOLUME
+}
+
 /**
  * Advanced Touch Controls Overlay for Smartphones & Tablets.
  * Supports:
@@ -94,7 +108,7 @@ fun TouchPlayerControls(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = remember(context) { context.findActivity() }
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
 
     var isControlsVisible by remember { mutableStateOf(true) }
@@ -109,9 +123,25 @@ fun TouchPlayerControls(
 
     var isAdjustingBrightness by remember { mutableStateOf(false) }
     var currentBrightnessPercent by remember {
-        val curBright = activity?.window?.attributes?.screenBrightness ?: 0.5f
-        mutableFloatStateOf(if (curBright < 0) 0.5f else curBright)
+        val curBright = activity?.window?.attributes?.screenBrightness ?: -1f
+        val initialBright = if (curBright in 0f..1f) {
+            curBright
+        } else {
+            try {
+                val sysBright = android.provider.Settings.System.getInt(
+                    context.contentResolver,
+                    android.provider.Settings.System.SCREEN_BRIGHTNESS,
+                    128
+                )
+                (sysBright / 255f).coerceIn(0.02f, 1.0f)
+            } catch (_: Exception) {
+                0.5f
+            }
+        }
+        mutableFloatStateOf(initialBright)
     }
+
+    var activeGestureMode by remember { mutableStateOf(TouchGestureMode.NONE) }
 
     // Auto-hide controls after 4 seconds
     LaunchedEffect(isControlsVisible, isPlaying, channel) {
@@ -133,6 +163,24 @@ fun TouchPlayerControls(
             delay(1500)
             isAdjustingBrightness = false
         }
+    }
+
+    // Clean up window brightness override when leaving player
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.let { act ->
+                val lp = act.window.attributes
+                if (lp.screenBrightness != WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) {
+                    lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                    act.window.attributes = lp
+                }
+            }
+        }
+    }
+
+    val supportsPip = remember(context) {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     }
 
     Box(
@@ -158,44 +206,48 @@ fun TouchPlayerControls(
                 detectDragGestures(
                     onDragStart = { offset ->
                         val width = size.width
-                        if (offset.x < width / 2) {
+                        activeGestureMode = if (offset.x < width / 2) {
                             isAdjustingBrightness = true
+                            TouchGestureMode.BRIGHTNESS
                         } else {
                             isAdjustingVolume = true
+                            TouchGestureMode.VOLUME
                         }
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        val width = size.width
                         val height = size.height
                         val deltaPercent = -dragAmount.y / (height * 0.45f)
 
-                        if (change.position.x < width / 2) {
-                            // Left half: Brightness
-                            isAdjustingBrightness = true
-                            val newBright = (currentBrightnessPercent + deltaPercent).coerceIn(0.02f, 1.0f)
-                            currentBrightnessPercent = newBright
-                            activity?.let { act ->
-                                val lp = act.window.attributes
-                                lp.screenBrightness = newBright
-                                act.window.attributes = lp
+                        when (activeGestureMode) {
+                            TouchGestureMode.BRIGHTNESS -> {
+                                isAdjustingBrightness = true
+                                val newBright = (currentBrightnessPercent + deltaPercent).coerceIn(0.02f, 1.0f)
+                                currentBrightnessPercent = newBright
+                                activity?.let { act ->
+                                    val lp = act.window.attributes
+                                    lp.screenBrightness = newBright
+                                    act.window.attributes = lp
+                                }
                             }
-                        } else {
-                            // Right half: Volume
-                            isAdjustingVolume = true
-                            val newVol = (currentVolumePercent + deltaPercent).coerceIn(0.0f, 1.0f)
-                            currentVolumePercent = newVol
-                            audioManager?.let { am ->
-                                val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                                val targetVol = (newVol * max).toInt()
-                                am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
+                            TouchGestureMode.VOLUME -> {
+                                isAdjustingVolume = true
+                                val newVol = (currentVolumePercent + deltaPercent).coerceIn(0.0f, 1.0f)
+                                currentVolumePercent = newVol
+                                audioManager?.let { am ->
+                                    val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                                    val targetVol = (newVol * max).toInt()
+                                    am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
+                                }
                             }
+                            TouchGestureMode.NONE -> Unit
                         }
                     },
                     onDragEnd = {
-                        // Indicators will auto dismiss via LaunchedEffect
+                        activeGestureMode = TouchGestureMode.NONE
                     },
                     onDragCancel = {
+                        activeGestureMode = TouchGestureMode.NONE
                         isAdjustingBrightness = false
                         isAdjustingVolume = false
                     }
@@ -252,6 +304,7 @@ fun TouchPlayerControls(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -309,16 +362,18 @@ fun TouchPlayerControls(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Picture-in-Picture Button (if supported)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Picture-in-Picture Button (if supported by device)
+                    if (supportsPip) {
                         IconButton(
                             onClick = {
                                 activity?.let { act ->
                                     try {
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                            act.enterPictureInPictureMode(
-                                                android.app.PictureInPictureParams.Builder().build()
-                                            )
+                                            isControlsVisible = false
+                                            val params = android.app.PictureInPictureParams.Builder()
+                                                .setAspectRatio(android.util.Rational(16, 9))
+                                                .build()
+                                            act.enterPictureInPictureMode(params)
                                         }
                                     } catch (_: Exception) { }
                                 }
@@ -396,6 +451,7 @@ fun TouchPlayerControls(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
                         .padding(bottom = 20.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.Black.copy(alpha = 0.6f))

@@ -1,7 +1,5 @@
 package com.gabestv.iptv.model
 
-import java.util.UUID
-
 /**
  * Represents a playable IPTV channel parsed from an M3U playlist.
  *
@@ -17,7 +15,7 @@ import java.util.UUID
  * @property httpReferrer Custom HTTP referrer required by some IPTV providers (`#EXTVLCOPT:http-referrer`).
  */
 data class Channel(
-    val id: String = UUID.randomUUID().toString(),
+    val id: String = "",
     val name: String,
     val streamUrl: String,
     val logoUrl: String? = null,
@@ -30,6 +28,10 @@ data class Channel(
 ) {
     companion object {
         const val DEFAULT_GROUP = "Uncategorized"
+
+        /** Generates a deterministic ID based on unique channel data */
+        fun generateId(streamUrl: String, name: String): String =
+            "${streamUrl.hashCode()}_${name.hashCode()}"
     }
 }
 

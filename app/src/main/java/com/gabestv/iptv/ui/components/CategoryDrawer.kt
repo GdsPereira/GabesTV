@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlinx.collections.immutable.ImmutableList
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Refresh
@@ -49,7 +50,7 @@ import com.gabestv.iptv.viewmodel.MainViewModel
 
 @Composable
 fun CategoryDrawer(
-    categories: List<ChannelCategory>,
+    categories: ImmutableList<ChannelCategory>,
     selectedCategoryId: String?,
     onCategorySelected: (ChannelCategory) -> Unit,
     modifier: Modifier = Modifier,

@@ -1,6 +1,7 @@
 package com.gabestv.iptv.viewmodel
 
 import com.gabestv.iptv.data.ChannelRepository
+import com.gabestv.iptv.data.FavoritesDataStore
 import com.gabestv.iptv.model.Channel
 import com.gabestv.iptv.model.ChannelCategory
 import com.gabestv.iptv.model.Playlist
@@ -16,6 +17,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -26,7 +28,9 @@ class MainViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChannelRepository
+    private lateinit var favoritesDataStore: FavoritesDataStore
     private lateinit var viewModel: MainViewModel
+    private val favoritesFlow = MutableStateFlow<Set<String>>(emptySet())
 
     private val sportsChannel = Channel(id = "1", name = "ESPN HD", streamUrl = "http://espn", groupTitle = "Sports")
     private val newsChannel = Channel(id = "2", name = "CNN Live", streamUrl = "http://cnn", groupTitle = "News")
@@ -47,6 +51,18 @@ class MainViewModelTest {
         Dispatchers.setMain(testDispatcher)
         repository = mockk(relaxed = true)
         coEvery { repository.loadPlaylist(any()) } returns Result.success(samplePlaylist)
+
+        favoritesFlow.value = emptySet()
+        favoritesDataStore = mockk(relaxed = true)
+        every { favoritesDataStore.favoriteChannelIds } returns favoritesFlow
+        coEvery { favoritesDataStore.toggleFavorite(any()) } answers {
+            val id = firstArg<String>()
+            favoritesFlow.value = if (favoritesFlow.value.contains(id)) {
+                favoritesFlow.value - id
+            } else {
+                favoritesFlow.value + id
+            }
+        }
     }
 
     @After
@@ -56,7 +72,7 @@ class MainViewModelTest {
 
     @Test
     fun init_loadsPlaylistAndSetsFirstCategoryByDefault() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -72,7 +88,7 @@ class MainViewModelTest {
 
     @Test
     fun selectCategory_updatesSelectedCategoryId() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.selectCategory("cat_news")
@@ -83,7 +99,7 @@ class MainViewModelTest {
 
     @Test
     fun playChannel_setsActivePlayingChannel() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.playChannel(newsChannel)
@@ -94,7 +110,7 @@ class MainViewModelTest {
 
     @Test
     fun closePlayer_clearsActivePlayingChannelWhilePreservingCategory() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.selectCategory("cat_movies")
@@ -117,7 +133,7 @@ class MainViewModelTest {
         every { repository.getNextChannel(sportsChannel, any()) } returns newsChannel
         every { repository.getPreviousChannel(newsChannel, any()) } returns sportsChannel
 
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.playChannel(sportsChannel)
@@ -135,7 +151,7 @@ class MainViewModelTest {
     fun loadPlaylist_failure_emitsErrorState() = runTest {
         coEvery { repository.loadPlaylist(any()) } returns Result.failure(IOException("Falha de rede ao carregar canais"))
 
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -146,7 +162,7 @@ class MainViewModelTest {
 
     @Test
     fun loadPlaylist_preservesSelectedCategoryAcrossReload() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.selectCategory("cat_movies")
@@ -163,7 +179,7 @@ class MainViewModelTest {
 
     @Test
     fun setSearchQuery_updatesSearchState() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.setSearchQuery("ESPN")
@@ -174,21 +190,23 @@ class MainViewModelTest {
 
     @Test
     fun toggleFavorite_addsAndRemovesChannelId() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         viewModel.toggleFavorite("channel_123")
+        advanceUntilIdle()
         val stateWithFav = viewModel.uiState.value as MainUiState.Success
         assertThat(stateWithFav.favoriteChannelIds).contains("channel_123")
 
         viewModel.toggleFavorite("channel_123")
+        advanceUntilIdle()
         val stateWithoutFav = viewModel.uiState.value as MainUiState.Success
         assertThat(stateWithoutFav.favoriteChannelIds).doesNotContain("channel_123")
     }
 
     @Test
     fun toggleViewMode_switchesBetweenGridAndList() = runTest {
-        viewModel = MainViewModel(repository)
+        viewModel = MainViewModel(repository, favoritesDataStore)
         advanceUntilIdle()
 
         val initial = (viewModel.uiState.value as MainUiState.Success).isListView

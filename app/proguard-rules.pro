@@ -2,7 +2,7 @@
 # GabesTV ProGuard / R8 Rules for Release Build
 # ====================================================================
 
-# Keep application data models and serializable classes
+# Keep application data models
 -keep class com.gabestv.iptv.model.** { *; }
 
 # Kotlin Coroutines
@@ -12,16 +12,11 @@
     volatile <fields>;
 }
 
-# OkHttp & Okio
+# OkHttp & Okio (suppress warnings — R8 bundles consumer rules)
 -dontwarn okhttp3.**
 -dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
 
-# Coil Image Loader (SVG & WebP)
--keep class coil.** { *; }
--dontwarn coil.**
--keep class com.caverock.androidsvg.** { *; }
+# Coil SVG decoder
 -dontwarn com.caverock.androidsvg.**
 
 # Dagger & Hilt
@@ -32,10 +27,10 @@
 }
 -dontwarn dagger.hilt.**
 
-# AndroidX Media3 / ExoPlayer
--keep class androidx.media3.** { *; }
+# AndroidX Media3 / ExoPlayer (suppress warnings — consumer rules handle keeps)
 -dontwarn androidx.media3.**
 
-# Jetpack Compose & TV Material3
--keep class androidx.compose.** { *; }
--keep class androidx.tv.** { *; }
+# DataStore Preferences
+-keepclassmembers class * extends androidx.datastore.preferences.protobuf.GeneratedMessageLite {
+    <fields>;
+}

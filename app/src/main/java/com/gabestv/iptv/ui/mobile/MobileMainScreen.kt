@@ -1,5 +1,6 @@
 package com.gabestv.iptv.ui.mobile
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,12 +12,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -24,6 +34,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import kotlinx.collections.immutable.ImmutableList
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -80,8 +91,8 @@ import com.gabestv.iptv.viewmodel.MainViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MobileMainScreen(
-    categories: List<ChannelCategory>,
-    channels: List<Channel>,
+    categories: ImmutableList<ChannelCategory>,
+    channels: ImmutableList<Channel>,
     selectedCategoryId: String?,
     searchQuery: String,
     favoriteChannelIds: Set<String>,
@@ -96,6 +107,13 @@ fun MobileMainScreen(
 ) {
     val focusManager = LocalFocusManager.current
     var isSearchExpanded by remember { mutableStateOf(searchQuery.isNotBlank()) }
+
+    // Intercept back key to collapse search instead of abruptly closing the app
+    BackHandler(enabled = isSearchExpanded) {
+        isSearchExpanded = false
+        onSearchQueryChanged("")
+        focusManager.clearFocus()
+    }
 
     // Filter channels based on selected category, favorites, and search query
     val filteredChannels = remember(channels, selectedCategoryId, searchQuery, favoriteChannelIds, categories) {
@@ -190,9 +208,11 @@ fun MobileMainScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DeepDarkBackground
-                )
+                ),
+                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = DeepDarkBackground,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
@@ -200,6 +220,8 @@ fun MobileMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                .imePadding()
         ) {
             // Category Filter Chips (Horizontal Carousel)
             LazyRow(
@@ -342,36 +364,41 @@ fun MobileMainScreen(
                         )
                     }
                 }
-            } else if (isListView) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(filteredChannels, key = { it.id }) { channel ->
-                        ChannelListItem(
-                            channel = channel,
-                            isFavorite = favoriteChannelIds.contains(channel.id),
-                            onClick = { onChannelClick(channel) },
-                            onToggleFavorite = { onToggleFavorite(channel.id) }
-                        )
-                    }
-                }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(filteredChannels, key = { it.id }) { channel ->
-                        ChannelCard(
-                            channel = channel,
-                            isFavorite = favoriteChannelIds.contains(channel.id),
-                            onClick = { onChannelClick(channel) },
-                            onToggleFavorite = { onToggleFavorite(channel.id) }
-                        )
+                val navBarBottom = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
+                val listBottomPadding = maxOf(32.dp, navBarBottom + 16.dp)
+
+                if (isListView) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = listBottomPadding),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(filteredChannels, key = { it.id }, contentType = { "channel" }) { channel ->
+                            ChannelListItem(
+                                channel = channel,
+                                isFavorite = favoriteChannelIds.contains(channel.id),
+                                onClick = { onChannelClick(channel) },
+                                onToggleFavorite = { onToggleFavorite(channel.id) }
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = listBottomPadding),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(filteredChannels, key = { it.id }, contentType = { "channel" }) { channel ->
+                            ChannelCard(
+                                channel = channel,
+                                isFavorite = favoriteChannelIds.contains(channel.id),
+                                onClick = { onChannelClick(channel) },
+                                onToggleFavorite = { onToggleFavorite(channel.id) }
+                            )
+                        }
                     }
                 }
             }

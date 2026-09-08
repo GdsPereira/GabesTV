@@ -2,6 +2,7 @@ package com.gabestv.iptv.player
 
 import android.content.Context
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -13,6 +14,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import com.gabestv.iptv.model.Channel
@@ -25,12 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 sealed interface PlayerState {
     data object Idle : PlayerState
@@ -51,9 +48,12 @@ class PlayerManager(
     private val okHttpClient: OkHttpClient = defaultOkHttpClient
 ) {
     private var exoPlayer: ExoPlayer? = null
+    private var mediaSession: MediaSession? = null
     private var currentChannel: Channel? = null
     private var retryJob: Job? = null
     private var retryCount = 0
+    private var mimeTypeOverride: String? = null
+    private var lastAttemptedMimeType: String? = null
 
     private val _playerState = MutableStateFlow<PlayerState>(PlayerState.Idle)
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
@@ -64,28 +64,9 @@ class PlayerManager(
     companion object {
         private const val MAX_RETRIES = 5
         private const val BASE_RETRY_DELAY_MS = 2000L
-        private const val DEFAULT_USER_AGENT = "GabesTV/1.0 (Android TV; TCL SmartTV; ExoPlayer)"
 
         val defaultOkHttpClient: OkHttpClient by lazy {
-            createPermissiveOkHttpClient()
-        }
-
-        fun createPermissiveOkHttpClient(): OkHttpClient {
-            val trustAllCerts = arrayOf<TrustManager>(
-                object : X509TrustManager {
-                    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                }
-            )
-
-            val sslContext = SSLContext.getInstance("SSL").apply {
-                init(null, trustAllCerts, SecureRandom())
-            }
-
-            return OkHttpClient.Builder()
-                .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-                .hostnameVerifier { _, _ -> true }
+            OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
@@ -114,14 +95,32 @@ class PlayerManager(
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
 
-        return ExoPlayer.Builder(context, renderersFactory)
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .build()
+
+        val player = ExoPlayer.Builder(context, renderersFactory)
+            .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
             .setLoadControl(loadControl)
             .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setHandleAudioBecomingNoisy(true)
             .build()
             .apply {
                 playWhenReady = true
                 addListener(playerListener)
             }
+
+        try {
+            mediaSession?.release()
+            mediaSession = MediaSession.Builder(context, player)
+                .setId("GabesTV_Session_${System.currentTimeMillis()}")
+                .build()
+        } catch (e: Exception) {
+            android.util.Log.w("GabesTV_Player", "Failed to initialize MediaSession: ${e.message}")
+        }
+
+        return player
     }
 
     private val playerListener = object : Player.Listener {
@@ -147,6 +146,9 @@ class PlayerManager(
     }
 
     fun play(channel: Channel) {
+        if (currentChannel?.id != channel.id) {
+            mimeTypeOverride = null
+        }
         currentChannel = channel
         retryJob?.cancel()
         retryCount = 0
@@ -154,7 +156,6 @@ class PlayerManager(
         val player = getPlayer()
         val mediaSource = buildMediaSource(channel)
 
-        player.stop()
         player.setMediaSource(mediaSource)
         player.prepare()
         player.playWhenReady = true
@@ -173,7 +174,7 @@ class PlayerManager(
      * Builds a MediaSource capable of playing both HLS (.m3u8) and MPEG-TS (.ts) from Threadfin.
      */
     private fun buildMediaSource(channel: Channel): MediaSource {
-        val userAgent = channel.httpUserAgent ?: DEFAULT_USER_AGENT
+        val userAgent = channel.httpUserAgent ?: com.gabestv.iptv.AppConstants.USER_AGENT
 
         val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent(userAgent)
@@ -185,13 +186,15 @@ class PlayerManager(
         }
 
         val streamUrl = channel.streamUrl.trim()
-        val mimeType = when {
+        val mimeType = mimeTypeOverride ?: when {
             streamUrl.contains(".m3u8", ignoreCase = true) -> MimeTypes.APPLICATION_M3U8
             streamUrl.contains(".mpd", ignoreCase = true) -> MimeTypes.APPLICATION_MPD
             streamUrl.endsWith(".ts", ignoreCase = true) -> MimeTypes.VIDEO_MP2T
-            streamUrl.contains("/stream/") -> MimeTypes.APPLICATION_M3U8 // Threadfin live streams
+            // Threadfin with FFmpeg buffer outputs MPEG-TS. Default to VIDEO_MP2T with auto-fallback to HLS
+            streamUrl.contains("/stream/") -> MimeTypes.VIDEO_MP2T
             else -> MimeTypes.APPLICATION_M3U8 // Default IPTV streams to HLS
         }
+        lastAttemptedMimeType = mimeType
 
         val mediaItem = MediaItem.Builder()
             .setUri(streamUrl)
@@ -229,6 +232,21 @@ class PlayerManager(
                 message = "Canal fora do ar no provedor original (HTTP $httpStatusCode). Use ◀ / ▶ para trocar de canal.",
                 isRetrying = false
             )
+            return
+        }
+
+        // Check for container format mismatch on /stream/ (e.g. MPEG-TS vs HLS)
+        val isContainerFormatError = error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+        if (isContainerFormatError && mimeTypeOverride == null && currentChannel?.streamUrl?.contains("/stream/") == true) {
+            val fallbackMime = if (lastAttemptedMimeType == MimeTypes.VIDEO_MP2T) {
+                MimeTypes.APPLICATION_M3U8
+            } else {
+                MimeTypes.VIDEO_MP2T
+            }
+            android.util.Log.w("GabesTV_Player", "Container parse error with $lastAttemptedMimeType for ${currentChannel?.name}. Auto-falling back to $fallbackMime")
+            mimeTypeOverride = fallbackMime
+            currentChannel?.let { play(it) }
             return
         }
 
@@ -284,6 +302,11 @@ class PlayerManager(
 
     fun release() {
         retryJob?.cancel()
+        mimeTypeOverride = null
+        try {
+            mediaSession?.release()
+            mediaSession = null
+        } catch (_: Exception) {}
         exoPlayer?.removeListener(playerListener)
         exoPlayer?.release()
         exoPlayer = null

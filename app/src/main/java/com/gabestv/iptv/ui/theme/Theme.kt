@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.tv.material3.darkColorScheme as tvDarkColorScheme
 import androidx.tv.material3.MaterialTheme as TvMaterialTheme
+import com.gabestv.iptv.ui.util.LocalDeviceType
 
 // Core Design System 2.0 Palette
 val CyberPurple = Color(0xFF7C4DFF)
@@ -59,18 +60,22 @@ private val TvM3ColorScheme = tvDarkColorScheme(
 
 /**
  * Dual-Theme Provider for GabesTV.
- * Provides both Android TV Material3 and Mobile Material3 theme contexts,
- * ensuring flawless component compatibility across all screens.
+ * Provides Android TV Material3 theme for TV devices and Mobile Material3 theme for Phone/Tablet,
+ * ensuring flawless component compatibility and preventing runtime layout crashes.
  */
 @Composable
 fun GabesTVTheme(
     content: @Composable () -> Unit
 ) {
-    StandardMaterialTheme(
-        colorScheme = StandardM3ColorScheme
-    ) {
+    val deviceType = LocalDeviceType.current
+    if (deviceType.isTv) {
         TvMaterialTheme(
             colorScheme = TvM3ColorScheme,
+            content = content
+        )
+    } else {
+        StandardMaterialTheme(
+            colorScheme = StandardM3ColorScheme,
             content = content
         )
     }

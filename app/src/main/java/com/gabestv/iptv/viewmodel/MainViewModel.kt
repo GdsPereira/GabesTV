@@ -3,6 +3,7 @@ package com.gabestv.iptv.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gabestv.iptv.data.ChannelRepository
+import com.gabestv.iptv.data.FavoritesDataStore
 import com.gabestv.iptv.model.Channel
 import com.gabestv.iptv.model.ChannelCategory
 import com.gabestv.iptv.model.Playlist
@@ -29,7 +30,8 @@ sealed interface MainUiState {
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val repository: ChannelRepository
+    private val repository: ChannelRepository,
+    private val favoritesDataStore: FavoritesDataStore
 ) : ViewModel() {
 
     companion object {
@@ -41,6 +43,16 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
+        // Load persisted favorites reactively from device-specific DataStore
+        viewModelScope.launch {
+            favoritesDataStore.favoriteChannelIds.collect { savedIds ->
+                _uiState.update { current ->
+                    if (current is MainUiState.Success) {
+                        current.copy(favoriteChannelIds = savedIds)
+                    } else current
+                }
+            }
+        }
         loadPlaylist()
     }
 
@@ -102,15 +114,8 @@ class MainViewModel @Inject constructor(
     }
 
     fun toggleFavorite(channelId: String) {
-        _uiState.update { current ->
-            if (current is MainUiState.Success) {
-                val newFavorites = if (current.favoriteChannelIds.contains(channelId)) {
-                    current.favoriteChannelIds - channelId
-                } else {
-                    current.favoriteChannelIds + channelId
-                }
-                current.copy(favoriteChannelIds = newFavorites)
-            } else current
+        viewModelScope.launch {
+            favoritesDataStore.toggleFavorite(channelId)
         }
     }
 
@@ -139,18 +144,24 @@ class MainViewModel @Inject constructor(
     }
 
     fun zapNext() {
-        val current = _uiState.value as? MainUiState.Success ?: return
-        val active = current.activePlayingChannel ?: return
-        val activeCategoryName = current.playlist.categories.find { it.id == current.selectedCategoryId }?.name
-        val next = repository.getNextChannel(active, activeCategoryName)
-        _uiState.update { current.copy(activePlayingChannel = next) }
+        _uiState.update { current ->
+            if (current !is MainUiState.Success) return@update current
+            val active = current.activePlayingChannel ?: return@update current
+            val activeCategoryName = current.playlist.categories
+                .find { it.id == current.selectedCategoryId }?.name
+            val next = repository.getNextChannel(active, activeCategoryName)
+            current.copy(activePlayingChannel = next)
+        }
     }
 
     fun zapPrevious() {
-        val current = _uiState.value as? MainUiState.Success ?: return
-        val active = current.activePlayingChannel ?: return
-        val activeCategoryName = current.playlist.categories.find { it.id == current.selectedCategoryId }?.name
-        val prev = repository.getPreviousChannel(active, activeCategoryName)
-        _uiState.update { current.copy(activePlayingChannel = prev) }
+        _uiState.update { current ->
+            if (current !is MainUiState.Success) return@update current
+            val active = current.activePlayingChannel ?: return@update current
+            val activeCategoryName = current.playlist.categories
+                .find { it.id == current.selectedCategoryId }?.name
+            val prev = repository.getPreviousChannel(active, activeCategoryName)
+            current.copy(activePlayingChannel = prev)
+        }
     }
 }

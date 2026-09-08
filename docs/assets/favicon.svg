@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="100%" height="100%">
+  <defs>
+    <linearGradient id="grad-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161328" />
+      <stop offset="50%" stop-color="#0D0C18" />
+      <stop offset="100%" stop-color="#07060D" />
+    </linearGradient>
+    <linearGradient id="grad-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="50%" stop-color="#A78BFA" />
+      <stop offset="100%" stop-color="#7C4DFF" />
+    </linearGradient>
+    <radialGradient id="grad-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7C4DFF" stop-opacity="0.4" />
+      <stop offset="60%" stop-color="#00E5FF" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="108" height="108" rx="24" fill="url(#grad-bg)" />
+  <rect width="108" height="108" rx="24" fill="none" stroke="url(#grad-accent)" stroke-width="2" stroke-opacity="0.3" />
+
+  <!-- Ambient Glow -->
+  <circle cx="54" cy="54" r="45" fill="url(#grad-glow)" />
+
+  <!-- TV Antenna -->
+  <path d="M48,25 L42,19 M60,25 L66,19" stroke="#7C4DFF" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- TV Frame -->
+  <rect x="24" y="27" width="60" height="48" rx="7" fill="#0B0A13" stroke="url(#grad-accent)" stroke-width="2.8" />
+
+  <!-- TV Stand Base -->
+  <path d="M47,75 L45,81 L63,81 L61,75" stroke="#7C4DFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <!-- 'G' Sweep -->
+  <path d="M62,40 C59,37 54,36 49,37 C42,39 37,45 37,52 C37,59 42,65 49,67 C56,68 62,65 65,60 C66.5,57.5 67,54 67,52 L52,52"
+        stroke="url(#grad-accent)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <!-- Play Triangle Inside G -->
+  <polygon points="48,46 58,52 48,58" fill="url(#grad-accent)" />
+
+  <!-- Live Pulse Dot -->
+  <circle cx="78" cy="33" r="2.5" fill="#FF2A55" filter="url(#glow)" />
+</svg>

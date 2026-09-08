@@ -10,10 +10,15 @@
 [![Media3 ExoPlayer](https://img.shields.io/badge/Media3-ExoPlayer%201.3.1-FF6F00?style=for-the-badge&logo=google&logoColor=white)](https://developer.android.com/media/media3)
 [![Dagger Hilt](https://img.shields.io/badge/Dagger-Hilt%202.51.1-009688?style=for-the-badge&logo=dagger&logoColor=white)](https://dagger.dev/hilt/)
 [![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20%26%20Azure-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/build-apk.yml)
+[![Landing Page](https://img.shields.io/badge/Site%20Oficial-GitHub%20Pages-00E5FF?style=for-the-badge&logo=googlechrome&logoColor=black)](https://gdspereira.github.io/GabesTV/)
+[![Download APK](https://img.shields.io/badge/Download-APK-FF2A55?style=for-the-badge&logo=android&logoColor=white)](https://tv.gabesp.com.br/download)
 
 <br/>
 
-> **GabesTV** é um cliente IPTV de alta performance desenvolvido do zero com foco exclusivo na experiência de 3 metros (*10-foot UI*). Projetado para Smart TVs (TCL, Philips, Sony), Google TV, Fire TV e TV Boxes, eliminando layouts herdados de celulares, WebViews lentas ou interfaces confusas.
+> **GabesTV** é um cliente IPTV de alta performance desenvolvido do zero com foco simultâneo em Smart TVs (*10-foot UI*) e Smartphones/Tablets. Projetado para Google TV, Android TV, Fire TV, TV Boxes e celulares, eliminando layouts lentos, WebViews ou interfaces confusas.
+>
+> 🌐 **Site oficial com demonstração interativa:** [gdspereira.github.io/GabesTV](https://gdspereira.github.io/GabesTV/)  
+> 📥 **Download direto do APK:** [tv.gabesp.com.br/download](https://tv.gabesp.com.br/download)
 
 </div>
 

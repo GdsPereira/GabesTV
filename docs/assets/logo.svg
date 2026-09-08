@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 90" width="100%" height="100%">
+  <defs>
+    <linearGradient id="logo-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="50%" stop-color="#A78BFA" />
+      <stop offset="100%" stop-color="#7C4DFF" />
+    </linearGradient>
+    <linearGradient id="line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C4DFF" />
+      <stop offset="60%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="logo-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7C4DFF" stop-opacity="0.45" />
+      <stop offset="50%" stop-color="#00E5FF" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+    <filter id="logo-blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Ambient Glow behind Emblem -->
+  <circle cx="52" cy="45" r="40" fill="url(#logo-glow)" />
+
+  <!-- TV Antenna -->
+  <path d="M46,20 L40,13 M58,20 L64,13" stroke="#7C4DFF" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Modern TV Screen Frame -->
+  <rect x="22" y="22" width="60" height="48" rx="8" fill="#0B0A13" stroke="url(#logo-accent)" stroke-width="2.8" />
+
+  <!-- TV Stand -->
+  <path d="M45,71 L42,78 L62,78 L59,71" stroke="#7C4DFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <!-- G Sweep -->
+  <path d="M60,35 C57,32 52,31 47,32 C40,34 35,40 35,47 C35,54 40,60 47,62 C54,63 60,60 63,55 C64.5,52.5 65,49 65,47 L50,47"
+        stroke="url(#logo-accent)" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+  <!-- Play Triangle -->
+  <polygon points="46,41 56,47 46,53" fill="url(#logo-accent)" />
+
+  <!-- Red Live Dot -->
+  <circle cx="76" cy="28" r="2.8" fill="#FF2A55" filter="url(#logo-blur)" />
+
+  <!-- Typography "Gabes" in pure white, "TV" in electric cyan -->
+  <text x="96" y="55" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Gabes<tspan fill="#00E5FF">TV</tspan></text>
+
+  <!-- Glowing Accent Line -->
+  <path d="M96,65 L270,65" stroke="url(#line-grad)" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Subtitle Tag -->
+  <text x="96" y="77" font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="700" fill="#A7A9BE" letter-spacing="3.2">HYBRID IPTV PLAYER</text>
+</svg>

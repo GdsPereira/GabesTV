@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GabesTV - O Reprodutor IPTV Definitivo para Smart TV e Android</title>
+  <meta name="description" content="GabesTV é um reprodutor IPTV híbrido de alta performance desenvolvido em Kotlin e Jetpack Compose com suporte simultâneo a Android TV / TV Box e Smartphones.">
+  <meta name="theme-color" content="#07060D">
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="GabesTV - IPTV Player Nativo para Android TV e Mobile">
+  <meta property="og:description" content="Zapping ultrarrápido com buffer de 1.5s, 100% Jetpack Compose, foco nativo D-Pad e integração com Cloudflare Tunnel.">
+  <meta property="og:image" content="assets/logo.svg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ==================== HEADER / NAVBAR ==================== -->
+  <header class="site-header">
+    <div class="container nav-content">
+      <a href="#" class="brand-link" aria-label="GabesTV Home">
+        <img src="assets/logo.svg" alt="GabesTV Logo" height="40">
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#showcase">Demonstração</a></li>
+          <li><a href="#recursos">Recursos</a></li>
+          <li><a href="#arquitetura">Arquitetura</a></li>
+          <li><a href="#instalacao">Instalação</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <a href="https://github.com/GdsPereira/GabesTV" target="_blank" rel="noopener noreferrer" class="btn-icon-link" title="Repositório no GitHub" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+        </a>
+
+        <a href="https://tv.gabesp.com.br/download" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+          <span>Baixar APK</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== HERO SECTION ==================== -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-badge-wrap">
+        <span class="live-dot"></span>
+        <span>EXPERIÊNCIA HÍBRIDA • ANDROID TV & MOBILE</span>
+      </div>
+
+      <h1 class="hero-title">
+        O Reprodutor IPTV <br/>
+        <span class="text-gradient">Nativo, Fluido e Ultrarrápido</span>
+      </h1>
+
+      <p class="hero-description">
+        Construído em <strong>Kotlin</strong> e <strong>Jetpack Compose</strong> com a engine <strong>Media3 ExoPlayer</strong>. 
+        Zero WebViews, zapping instantâneo com buffer inicial de 1,5s e foco ergonômico desenhado para a sua Smart TV e celular.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="https://tv.gabesp.com.br/download" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Download do APK</span>
+        </a>
+
+        <a href="#instalacao" class="btn btn-secondary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          <span>Como Instalar</span>
+        </a>
+
+        <a href="https://github.com/GdsPereira/GabesTV" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+
+      <div class="tech-pills">
+        <span class="tech-pill">
+          <svg viewBox="0 0 24 24"><path d="M1.5 22.5L12 12L22.5 22.5H1.5ZM1.5 1.5H22.5L12 12L1.5 1.5ZM1.5 1.5L12 12L1.5 22.5V1.5Z"/></svg>
+          Kotlin 1.9.24
+        </span>
+        <span class="tech-pill">
+          <svg viewBox="0 0 24 24"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9996.4482.9996.9993.0001.5511-.4486.9997-.9996.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9996.4482.9996.9993 0 .5511-.4485.9997-.9996.9997m11.4045-6.02l1.996-3.4572c.156-.2704.0634-.6163-.207-.7723-.2706-.1562-.6164-.0636-.7725.207l-2.021 3.5005C15.3404 8.2323 13.7225 7.854 12 7.854c-1.7224 0-3.3403.3783-4.877 1.0504L5.102 5.4039c-.1561-.2706-.5019-.3632-.7725-.207-.2704.156-.363 1.5019-.207.7723l1.996 3.4572C2.6961 11.233.3768 14.8197 0 19.0664h24c-.3768-4.2467-2.6961-7.8334-6.1185-9.745"/></svg>
+          Android TV & Mobile
+        </span>
+        <span class="tech-pill">Jetpack Compose TV</span>
+        <span class="tech-pill">AndroidX Media3 ExoPlayer</span>
+        <span class="tech-pill">Dagger Hilt & Coroutines</span>
+        <span class="tech-pill">Cloudflare Tunnel</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== INTERACTIVE SHOWCASE ==================== -->
+  <section class="showcase-section" id="showcase">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Demonstração Interativa</span>
+        <h2 class="section-title">Experimente a Interface em Tempo Real</h2>
+        <p class="section-subtitle">
+          Alterne entre a experiência 10-Foot UI de Smart TV ou o visual imersivo para smartphones.
+          Use o controle remoto virtual ao lado ou as <strong>setas do teclado</strong> para navegar pelos canais!
+        </p>
+      </div>
+
+      <!-- Device Switcher Tabs -->
+      <div class="device-switch-wrap">
+        <div class="device-switch-tabs">
+          <button class="device-tab active" data-device="tv">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M17 2l-5 5-5-5"/></svg>
+            <span>Smart TV (10-Foot UI)</span>
+          </button>
+          <button class="device-tab" data-device="mobile">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span>Smartphone (Touch Imersivo)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Simulator Interactive Layout -->
+      <div class="simulator-layout">
+        
+        <!-- Left: TV or Mobile Screen Stage -->
+        <div class="stage-wrapper">
+          
+          <!-- TV STAGE -->
+          <div class="tv-stage-container" id="tvStage">
+            <div class="tv-bezel">
+              
+              <!-- Left Drawer Navigation -->
+              <div class="tv-split-drawer">
+                <div class="tv-drawer-header">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <span>CATEGORIAS</span>
+                </div>
+                <div class="tv-cat-item active">
+                  <span>Todos os Canais</span>
+                  <span class="badge-count">124</span>
+                </div>
+                <div class="tv-cat-item">
+                  <span>Esportes</span>
+                  <span class="badge-count">32</span>
+                </div>
+                <div class="tv-cat-item">
+                  <span>Filmes & Séries</span>
+                  <span class="badge-count">48</span>
+                </div>
+                <div class="tv-cat-item">
+                  <span>Variedades & Notícias</span>
+                  <span class="badge-count">24</span>
+                </div>
+                <div class="tv-cat-item">
+                  <span>Infantil</span>
+                  <span class="badge-count">12</span>
+                </div>
+                <div class="tv-cat-item">
+                  <span>⭐ Favoritos</span>
+                  <span class="badge-count">8</span>
+                </div>
+              </div>
+
+              <!-- Main Display & Channels Grid -->
+              <div class="tv-main-display">
+                <!-- Video Backdrop Simulated Canvas -->
+                <div class="tv-video-background" id="tvVideoBg"></div>
+                <div class="tv-video-overlay"></div>
+
+                <!-- Channel Grid with 1.08x D-Pad Focus Zoom -->
+                <div class="tv-channels-grid" id="tvChannelsGrid">
+                  <!-- Generated dynamically via app.js -->
+                </div>
+
+                <!-- TV HUD / OSD Overlay -->
+                <div class="tv-hud-overlay" id="tvHud">
+                  <div class="hud-left">
+                    <div class="hud-badge-live">
+                      <span class="live-dot" style="width:6px;height:6px;"></span>
+                      <span>AO VIVO</span>
+                    </div>
+                    <div>
+                      <div class="hud-title" id="hudChannelName">SporTV HD</div>
+                      <div class="hud-subtitle" id="hudChannelDesc">Brasileirão Série A • Transmissão Ao Vivo</div>
+                    </div>
+                  </div>
+
+                  <div class="hud-controls-hint">
+                    <span id="hudResolution" style="font-size:0.75rem; color:var(--accent-cyan); font-weight:600;">1080p 60fps • 6.5 Mbps</span>
+                    <span class="hud-key">OK Play/Pause</span>
+                    <span class="hud-key">▲ HUD</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- TV Stand -->
+            <div class="tv-stand-element"></div>
+          </div>
+
+          <!-- MOBILE STAGE (Shown when mobile tab is active) -->
+          <div class="mobile-stage-container" id="mobileStage">
+            <div class="mobile-phone-frame">
+              <div class="mobile-camera-cutout"></div>
+              
+              <div class="mobile-inner-screen">
+                <!-- Top Bar -->
+                <div class="mobile-header">
+                  <img src="assets/logo.svg" alt="GabesTV" height="26">
+                  <div style="display:flex; gap:8px;">
+                    <span style="font-size:0.8rem; background:rgba(255,255,255,0.1); padding:4px 8px; border-radius:6px;">PiP</span>
+                    <span style="font-size:0.8rem; background:rgba(0,229,255,0.15); color:var(--accent-cyan); padding:4px 8px; border-radius:6px;">4K</span>
+                  </div>
+                </div>
+
+                <!-- Search Input Simulation -->
+                <div class="mobile-search-mock">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span>Buscar canal ou programa...</span>
+                </div>
+
+                <!-- Filter Chips -->
+                <div class="mobile-chips-scroll">
+                  <span class="m-chip active">Todos</span>
+                  <span class="m-chip">⭐ Favoritos</span>
+                  <span class="m-chip">Esportes</span>
+                  <span class="m-chip">Filmes</span>
+                  <span class="m-chip">Notícias</span>
+                </div>
+
+                <!-- Channel List -->
+                <div class="mobile-channel-list">
+                  <div class="m-channel-row">
+                    <div class="m-channel-icon">⚽</div>
+                    <div style="flex:1;">
+                      <div style="font-weight:700; font-size:0.85rem;">SporTV HD</div>
+                      <div style="font-size:0.7rem; color:var(--text-muted);">Brasileirão Série A • Ao Vivo</div>
+                    </div>
+                    <span class="live-dot" style="width:6px; height:6px;"></span>
+                  </div>
+
+                  <div class="m-channel-row">
+                    <div class="m-channel-icon">🏆</div>
+                    <div style="flex:1;">
+                      <div style="font-weight:700; font-size:0.85rem;">ESPN Brasil</div>
+                      <div style="font-size:0.7rem; color:var(--text-muted);">Premier League • HD</div>
+                    </div>
+                  </div>
+
+                  <div class="m-channel-row">
+                    <div class="m-channel-icon">🎬</div>
+                    <div style="flex:1;">
+                      <div style="font-weight:700; font-size:0.85rem;">HBO Signature</div>
+                      <div style="font-size:0.7rem; color:var(--text-muted);">Cinema 4K Dolby Atmos</div>
+                    </div>
+                  </div>
+
+                  <div class="m-channel-row">
+                    <div class="m-channel-icon">📺</div>
+                    <div style="flex:1;">
+                      <div style="font-weight:700; font-size:0.85rem;">Globo SP HD</div>
+                      <div style="font-size:0.7rem; color:var(--text-muted);">Programação Nacional • FHD</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Tactile Remote Control D-Pad -->
+        <aside class="remote-control-widget">
+          <span class="remote-badge">Navegação D-Pad</span>
+          <h3 class="remote-title">Controle Remoto</h3>
+
+          <div class="dpad-container">
+            <button class="dpad-btn dpad-up" id="dpadUp" title="Cima (Exibir/Ocultar HUD)" aria-label="Cima">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button class="dpad-btn dpad-down" id="dpadDown" title="Baixo (Exibir/Ocultar HUD)" aria-label="Baixo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <button class="dpad-btn dpad-left" id="dpadLeft" title="Esquerda (Canal Anterior)" aria-label="Esquerda">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="dpad-btn dpad-right" id="dpadRight" title="Direita (Próximo Canal)" aria-label="Direita">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="dpad-btn dpad-center" id="dpadCenter" title="OK / Selecionar" aria-label="OK">
+              OK
+            </button>
+          </div>
+
+          <div class="remote-actions-row">
+            <button class="remote-action-btn" id="remoteInfo">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>INFO</span>
+            </button>
+            <button class="remote-action-btn" id="remotePlayPause">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>PLAY</span>
+            </button>
+            <button class="remote-action-btn" id="remoteBack">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+              <span>BACK</span>
+            </button>
+          </div>
+
+          <p class="remote-hint">
+            💡 Dica: Você também pode usar as <strong>setas ◀ ▶ ▲ ▼</strong> e <strong>Enter</strong> do teclado!
+          </p>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FEATURES GRID ==================== -->
+  <section class="features-section" id="recursos">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Engenharia de Ponta</span>
+        <h2 class="section-title">Recursos Projetados para Máxima Fluidez</h2>
+        <p class="section-subtitle">
+          Eliminando atrasos e travamentos típicos de reprodutores IPTV genéricos baseados em WebViews.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        
+        <div class="glass-card feature-card">
+          <div class="feature-icon-box">⚡</div>
+          <h3 class="feature-title">Zapping Ultrarrápido (1,5s)</h3>
+          <p class="feature-desc">
+            Configuração customizada de <code>DefaultLoadControl</code> do ExoPlayer com buffer de inicialização de 1.500ms, proporcionando troca de canais instantânea ao vivo.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon-box">🎮</div>
+          <h3 class="feature-title">100% Jetpack Compose for TV</h3>
+          <p class="feature-desc">
+            Interface 10-foot UI nativa com <code>androidx.tv.material3</code>. Efeito de foco com escala dinâmica 1.08x, brilho periférico neon e navegação D-Pad precisa.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon-box">📡</div>
+          <h3 class="feature-title">Media3 ExoPlayer 1.3.1</h3>
+          <p class="feature-desc">
+            Compatibilidade com fluxos HLS (<code>.m3u8</code>), MPEG-TS (<code>.ts</code>), custom User-Agent e Referer via <code>OkHttpDataSource</code> para contornar bloqueios de operadoras.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon-box">🔄</div>
+          <h3 class="feature-title">Reconexão Inteligente</h3>
+          <p class="feature-desc">
+            Algoritmo de retry com <em>exponential backoff</em> que recupera transmissões com oscilações temporárias de rede automaticamente sem travar o player.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon-box">🌐</div>
+          <h3 class="feature-title">Cloudflare Tunnel & Threadfin</h3>
+          <p class="feature-desc">
+            Sincronização nativa via endpoint seguro Cloudflare (<code>tv.gabesp.com.br</code>) e fallback automático para playlist local embutida caso falte internet.
+          </p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon-box">📱</div>
+          <h3 class="feature-title">Touch Imersivo & Picture-in-Picture</h3>
+          <p class="feature-desc">
+            Suporte a celulares com controle gestual vertical de brilho e volume, busca instantânea, canais favoritos e modo Picture-in-Picture (PiP).
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ARCHITECTURE COMPARISON ==================== -->
+  <section class="architecture-section" id="arquitetura">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Arquitetura Híbrida</span>
+        <h2 class="section-title">Uma Base de Código, Experiências Especializadas</h2>
+        <p class="section-subtitle">
+          Detecção inteligente de dispositivo via <code>DeviceType</code> para fornecer a melhor ergonomia em qualquer tela.
+        </p>
+      </div>
+
+      <div class="arch-comparison-grid">
+        
+        <div class="glass-card arch-col">
+          <span class="arch-badge tv">📺 Modo Android TV & TV Box</span>
+          <h3>Experiência de Sofá (10-Foot UI)</h3>
+          <p style="color:var(--text-muted); margin-top:8px;">
+            Otimizado para ser operado a 3 metros de distância exclusivamente pelo controle remoto.
+          </p>
+          <ul class="arch-feature-list">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Navegação D-Pad com foco gerenciado e escala de 1.08x nos cards</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Drawer de categorias lateral retrátil em tela dividida</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>HUD OSD cinematográfico com auto-hide após 4s de inatividade</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Atalhos rápidos de CH+ / CH- pelas setas direcionais</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="glass-card arch-col">
+          <span class="arch-badge mobile">📱 Modo Mobile & Tablet</span>
+          <h3>Experiência Touchscreen Imersiva</h3>
+          <p style="color:var(--text-muted); margin-top:8px;">
+            Projetado para telas portáteis com gestos fluidos e preenchimento total do display.
+          </p>
+          <ul class="arch-feature-list">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Display cutout / notch imersivo de borda a borda</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Gestos na tela: arraste esquerdo (brilho) e direito (volume)</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Alternador de visualização entre Lista compacta e Grade (Grid)</span>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Picture-in-Picture (PiP) para continuar assistindo enquanto usa outros apps</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== INSTALLATION GUIDE ==================== -->
+  <section class="install-section" id="instalacao">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Guia de Instalação</span>
+        <h2 class="section-title">Como Instalar na sua TV ou Celular</h2>
+        <p class="section-subtitle">
+          Escolha o método mais prático para o seu dispositivo.
+        </p>
+      </div>
+
+      <!-- Installation Tabs -->
+      <div class="install-tabs">
+        <button class="install-tab-btn active" data-tab="tab-adb">Smart TV (Wi-Fi ADB)</button>
+        <button class="install-tab-btn" data-tab="tab-apk">Celular / TV Box (APK Direto)</button>
+        <button class="install-tab-btn" data-tab="tab-firetv">Fire TV (Downloader)</button>
+      </div>
+
+      <!-- Tab Content: ADB Wi-Fi -->
+      <div class="install-tab-content active" id="tab-adb">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-body">
+            <h4 class="step-title">Ativar Depuração USB / Rede na Smart TV</h4>
+            <p class="step-desc">
+              Na TV, acesse <strong>Configurações &gt; Sistema &gt; Sobre</strong> e clique 7 vezes em <strong>Número da Versão (Build)</strong>. 
+              Em seguida, acesse <strong>Opções do Desenvolvedor</strong> e ative a <strong>Depuração por Rede / Wi-Fi</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-body">
+            <h4 class="step-title">Conectar via ADB pelo computador</h4>
+            <p class="step-desc">Substitua pelo endereço IP da sua televisão na mesma rede Wi-Fi:</p>
+            <div class="code-box">
+              <code>adb connect 192.168.1.150:5555</code>
+              <button class="copy-btn" data-code="adb connect 192.168.1.150:5555">Copiar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-body">
+            <h4 class="step-title">Instalar o APK do GabesTV</h4>
+            <p class="step-desc">Envie o arquivo compilado diretamente para a TV sem precisar de pendrive:</p>
+            <div class="code-box">
+              <code>adb install -r GabesTV-AndroidTV.apk</code>
+              <button class="copy-btn" data-code="adb install -r GabesTV-AndroidTV.apk">Copiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Direct APK -->
+      <div class="install-tab-content" id="tab-apk">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-body">
+            <h4 class="step-title">Baixar o pacote APK oficial</h4>
+            <p class="step-desc">
+              Baixe o instalador mais recente diretamente do servidor oficial ou acesse os releases no GitHub:
+            </p>
+            <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <a href="https://tv.gabesp.com.br/download" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Baixar do Servidor Oficial (tv.gabesp.com.br/download)</span>
+              </a>
+              <a href="https://github.com/GdsPereira/GabesTV/releases" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                <span>Releases no GitHub</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-body">
+            <h4 class="step-title">Permitir instalação de fontes desconhecidas</h4>
+            <p class="step-desc">
+              Ao abrir o arquivo baixado, autorize seu navegador ou gerenciador de arquivos a instalar pacotes APK.
+            </p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-body">
+            <h4 class="step-title">Abrir o GabesTV e desfrutar</h4>
+            <p class="step-desc">
+              O app carrega automaticamente a lista remota ou de contingência local com inicialização imediata.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Fire TV -->
+      <div class="install-tab-content" id="tab-firetv">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-body">
+            <h4 class="step-title">Instalar o app "Downloader" no Fire TV</h4>
+            <p class="step-desc">
+              Pesquise por <strong>Downloader</strong> na loja de aplicativos da Amazon e faça a instalação gratuita.
+            </p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-body">
+            <h4 class="step-title">Inserir o link direto do APK</h4>
+            <p class="step-desc">
+              No campo de URL do aplicativo Downloader, digite a URL direta para baixar o aplicativo com 1 clique:
+            </p>
+            <div class="code-box">
+              <code>https://tv.gabesp.com.br/download</code>
+              <button class="copy-btn" data-code="https://tv.gabesp.com.br/download">Copiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== FAQ ACCORDION ==================== -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Perguntas Frequentes</span>
+        <h2 class="section-title">Tire suas Dúvidas</h2>
+      </div>
+
+      <div class="faq-list">
+        
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Quais dispositivos são compatíveis com o GabesTV?</span>
+            <span class="faq-icon">▾</span>
+          </button>
+          <div class="faq-answer">
+            O GabesTV suporta qualquer aparelho com Android 7.0 (API 24) ou superior. Isso inclui Smart TVs com Google TV e Android TV (TCL, Philips, Sony, Xiaomi), Fire TV Stick / Cube, Mi Box, receptores TV Box e smartphones/tablets Android.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Como o GabesTV atinge um zapping tão rápido?</span>
+            <span class="faq-icon">▾</span>
+          </button>
+          <div class="faq-answer">
+            Diferente de players convencionais que usam WebViews pesadas ou buffers genéricos de 15 a 30 segundos, o GabesTV implementa uma política customizada de <code>DefaultLoadControl</code> no Media3 ExoPlayer com buffer de inicialização de apenas 1,5 segundos (1.500ms), otimizando o handshake HLS/TS para reprodução instantânea.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>O aplicativo funciona sem conexão com a internet?</span>
+            <span class="faq-icon">▾</span>
+          </button>
+          <div class="faq-answer">
+            Caso o túnel remoto esteja inacessível ou o dispositivo perca a conectividade externa, o GabesTV faz fallback gracioso para a lista interna embutida no APK (<code>sample_channels.m3u</code>), evitando travamentos na inicialização.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Como compilar o projeto do zero pelo código-fonte?</span>
+            <span class="faq-icon">▾</span>
+          </button>
+          <div class="faq-answer">
+            O repositório inclui o Gradle Wrapper completo. Basta clonar o repositório e executar <code>./gradlew assembleDebug</code> ou <code>./gradlew assembleRelease</code> com JDK 17 ou JDK 21 configurado.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>O aplicativo contém anúncios ou rastreadores?</span>
+            <span class="faq-icon">▾</span>
+          </button>
+          <div class="faq-answer">
+            Não! O GabesTV é um software 100% livre, de código aberto sob licença MIT, sem anúncios intrusivos, sem telemetria abusiva e sem taxas ocultas.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <img src="assets/logo.svg" alt="GabesTV Logo" height="36">
+          <p>
+            O reprodutor IPTV definitivo de alta performance em Kotlin e Jetpack Compose. Experiência nativa em telas grandes e dispositivos móveis.
+          </p>
+        </div>
+
+        <div class="footer-links-group">
+          <h4>Navegação</h4>
+          <ul>
+            <li><a href="#showcase">Demonstração</a></li>
+            <li><a href="#recursos">Recursos</a></li>
+            <li><a href="#arquitetura">Arquitetura</a></li>
+            <li><a href="#instalacao">Instalação</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-group">
+          <h4>Download & Código</h4>
+          <ul>
+            <li><a href="https://tv.gabesp.com.br/download" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan); font-weight:600;">⚡ Download APK (tv.gabesp.com.br)</a></li>
+            <li><a href="https://github.com/GdsPereira/GabesTV" target="_blank" rel="noopener noreferrer">Repositório GitHub</a></li>
+            <li><a href="https://github.com/GdsPereira/GabesTV/releases" target="_blank" rel="noopener noreferrer">Releases & APKs</a></li>
+            <li><a href="https://github.com/GdsPereira/GabesTV/actions" target="_blank" rel="noopener noreferrer">GitHub Actions</a></li>
+            <li><a href="https://github.com/GdsPereira/GabesTV/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Licença MIT</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          © 2026 GabesTV • Licença MIT • Desenvolvido por <strong><a href="https://github.com/GdsPereira" target="_blank" rel="noopener noreferrer">Gabriel Pereira</a></strong>
+        </div>
+        <div>
+          <span>Jetpack Compose for TV • Media3 ExoPlayer 1.3.1 • Kotlin</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>

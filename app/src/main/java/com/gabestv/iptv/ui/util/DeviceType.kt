@@ -1,7 +1,9 @@
 package com.gabestv.iptv.ui.util
 
+import android.app.Activity
 import android.app.UiModeManager
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
@@ -16,6 +18,7 @@ enum class DeviceType {
     TABLET;
 
     val isTv: Boolean get() = this == TV
+    val isTvDevice: Boolean get() = isTv
     val isPhone: Boolean get() = this == PHONE
     val isTablet: Boolean get() = this == TABLET
     val isTouch: Boolean get() = this != TV
@@ -47,10 +50,24 @@ fun detectDeviceType(context: Context, configuration: Configuration): DeviceType
         return DeviceType.TV
     }
 
-    val smallestWidth = configuration.smallestScreenWidthDp
+    val smallestWidth = if (configuration.smallestScreenWidthDp > 0) {
+        configuration.smallestScreenWidthDp
+    } else {
+        minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+    }
     return if (smallestWidth >= 600) {
         DeviceType.TABLET
     } else {
         DeviceType.PHONE
     }
 }
+
+/**
+ * Unwraps Context to locate enclosing Activity instance if available.
+ */
+tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+

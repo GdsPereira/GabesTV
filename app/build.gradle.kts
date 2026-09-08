@@ -92,6 +92,7 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -143,9 +144,13 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // Immutable Collections for Compose stability
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
 
     // Core AndroidX
     implementation("androidx.core:core-ktx:1.13.1")
+    // DataStore Preferences for persistent favorites
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
@@ -153,4 +158,5 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("io.mockk:mockk:1.13.11")
+    testImplementation("org.robolectric:robolectric:4.12.2")
 }
