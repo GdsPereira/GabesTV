@@ -120,6 +120,7 @@ fun PlayerScreen(
     DisposableEffect(Unit) {
         val activity = context.findActivity()
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        activity?.window?.decorView?.keepScreenOn = true
         onDispose { }
     }
 
