@@ -76,11 +76,31 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Dependency Review (Pull Requests)
+      - name: Check Dependency Review availability
+        id: dependency_review_support
         if: github.event_name == 'pull_request'
+        run: |
+          RESPONSE=$(curl -sS -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}")
+          ADVANCED_SECURITY=$(echo "$RESPONSE" | jq -r '.security_and_analysis.advanced_security.status // "disabled"')
+          DEPENDENCY_GRAPH=$(echo "$RESPONSE" | jq -r '.security_and_analysis.dependency_graph.status // "disabled"')
+
+          if [ "$ADVANCED_SECURITY" = "enabled" ] && [ "$DEPENDENCY_GRAPH" = "enabled" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Dependency Review habilitado para este repositório."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Dependency Review indisponível (advanced_security=$ADVANCED_SECURITY, dependency_graph=$DEPENDENCY_GRAPH)."
+          fi
+
+      - name: Dependency Review (Pull Requests)
+        if: github.event_name == 'pull_request' && steps.dependency_review_support.outputs.enabled == 'true'
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
+
+      - name: Dependency Review skipped notice
+        if: github.event_name == 'pull_request' && steps.dependency_review_support.outputs.enabled != 'true'
+        run: echo "Dependency Review foi ignorado porque o repositório não tem suporte (Dependency Graph e/ou GitHub Advanced Security desabilitados)."
 
       - name: Run Trivy Vulnerability Scanner (Filesystem & Libraries)
         uses: aquasecurity/trivy-action@master
