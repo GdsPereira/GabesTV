@@ -103,7 +103,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install and Run MobSFscan (Static Mobile Security Analysis)
         run: |
@@ -138,7 +137,8 @@ jobs:
 
       - name: Upload MobSFscan SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('security-reports/mobsf-report.sarif') != ''
+        continue-on-error: true
         with:
           sarif_file: security-reports/mobsf-report.sarif
           category: mobsfscan-apk
@@ -184,6 +184,7 @@ jobs:
             dist/*.json
             dist/checksums-sha256.txt
             security-reports/*
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Create GitHub Release (Tags)

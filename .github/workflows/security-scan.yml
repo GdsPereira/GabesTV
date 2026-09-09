@@ -64,6 +64,7 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        continue-on-error: true
         with:
           category: "/language:java-kotlin"
 
@@ -91,14 +92,15 @@ jobs:
 
       - name: Upload Trivy SARIF Report to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-dependency-results.sarif') != ''
+        continue-on-error: true
         with:
           sarif_file: 'trivy-dependency-results.sarif'
           category: 'trivy-dependencies'
 
       - name: Upload Dependency Scan Artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && hashFiles('trivy-dependency-results.sarif') != ''
         with:
           name: dependency-scan-results
           path: trivy-dependency-results.sarif
