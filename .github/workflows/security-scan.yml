@@ -1,0 +1,128 @@
+name: Security Scan & Shift-Left (SAST, Secrets, Dependencies)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Executa toda segunda-feira às 06:00 UTC para detectar novas CVEs em dependências existentes
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  pull-requests: write
+
+jobs:
+  secret-scan:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Secret Detection
+        uses: zricethezav/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+          GITLEAKS_ENABLE_SUMMARY: true
+
+  codeql-sast:
+    name: CodeQL SAST (Java-Kotlin)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          queries: security-extended,security-and-quality
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build debug classes for CodeQL analysis
+        run: ./gradlew :app:compileDebugKotlin :app:compileDebugJavaWithJavac --stacktrace
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        continue-on-error: true
+        with:
+          category: "/language:java-kotlin"
+
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Dependency Review availability
+        id: dependency_review_support
+        if: github.event_name == 'pull_request'
+        run: |
+          RESPONSE=$(curl -sS -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}")
+          ADVANCED_SECURITY=$(echo "$RESPONSE" | jq -r '.security_and_analysis.advanced_security.status // "disabled"')
+          DEPENDENCY_GRAPH=$(echo "$RESPONSE" | jq -r '.security_and_analysis.dependency_graph.status // "disabled"')
+
+          if [ "$ADVANCED_SECURITY" = "enabled" ] && [ "$DEPENDENCY_GRAPH" = "enabled" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Dependency Review habilitado para este repositório."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Dependency Review indisponível (advanced_security=$ADVANCED_SECURITY, dependency_graph=$DEPENDENCY_GRAPH)."
+          fi
+
+      - name: Dependency Review (Pull Requests)
+        if: github.event_name == 'pull_request' && steps.dependency_review_support.outputs.enabled == 'true'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+      - name: Dependency Review skipped notice
+        if: github.event_name == 'pull_request' && steps.dependency_review_support.outputs.enabled != 'true'
+        run: echo "Dependency Review foi ignorado porque o repositório não tem suporte (Dependency Graph e/ou GitHub Advanced Security desabilitados)."
+
+      - name: Run Trivy Vulnerability Scanner (Filesystem & Libraries)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: false
+          format: 'sarif'
+          output: 'trivy-dependency-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy SARIF Report to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-dependency-results.sarif') != ''
+        continue-on-error: true
+        with:
+          sarif_file: 'trivy-dependency-results.sarif'
+          category: 'trivy-dependencies'
+
+      - name: Upload Dependency Scan Artifact
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('trivy-dependency-results.sarif') != ''
+        with:
+          name: dependency-scan-results
+          path: trivy-dependency-results.sarif
+          retention-days: 14

@@ -43,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.gabestv.iptv.ui.MainScreen
 import com.gabestv.iptv.ui.components.BrandLogo
 import com.gabestv.iptv.ui.components.BrandLogoSize
+import com.gabestv.iptv.ui.components.UpdateDialog
 import com.gabestv.iptv.ui.player.PlayerScreen
 import com.gabestv.iptv.ui.theme.CyberPurple
 import com.gabestv.iptv.ui.theme.DeepDarkBackground
@@ -94,6 +95,7 @@ class MainActivity : ComponentActivity() {
                 GabesTVTheme {
                     val viewModel: MainViewModel = hiltViewModel()
                     val state by viewModel.uiState.collectAsState()
+                    val updateState by viewModel.updateState.collectAsState()
 
                     // Handle dynamic screen orientation for TV vs Mobile
                     val activePlaying = (state as? MainUiState.Success)?.activePlayingChannel
@@ -236,6 +238,27 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
+                    // In-App OTA Update Dialog overlay
+                    UpdateDialog(
+                        state = updateState,
+                        onStartDownload = {
+                            if (viewModel.canInstallPackages()) {
+                                viewModel.startUpdateDownload()
+                            } else {
+                                startActivity(viewModel.getInstallPermissionIntent())
+                            }
+                        },
+                        onInstall = { apkFile ->
+                            if (viewModel.canInstallPackages()) {
+                                viewModel.triggerInstall(apkFile)
+                            } else {
+                                startActivity(viewModel.getInstallPermissionIntent())
+                            }
+                        },
+                        onDismiss = { viewModel.dismissUpdateDialog() },
+                        onRetry = { viewModel.startUpdateDownload() }
+                    )
                 }
             }
         }

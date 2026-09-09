@@ -1,7 +1,10 @@
 package com.gabestv.iptv.viewmodel
 
 import com.gabestv.iptv.data.ChannelRepository
+import com.gabestv.iptv.data.DownloadProgress
 import com.gabestv.iptv.data.FavoritesDataStore
+import com.gabestv.iptv.data.UpdateRepository
+import com.gabestv.iptv.model.AppUpdateInfo
 import com.gabestv.iptv.model.Channel
 import com.gabestv.iptv.model.ChannelCategory
 import com.gabestv.iptv.model.Playlist
@@ -12,6 +15,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -29,6 +34,7 @@ class MainViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: ChannelRepository
     private lateinit var favoritesDataStore: FavoritesDataStore
+    private lateinit var updateRepository: UpdateRepository
     private lateinit var viewModel: MainViewModel
     private val favoritesFlow = MutableStateFlow<Set<String>>(emptySet())
 
@@ -52,6 +58,9 @@ class MainViewModelTest {
         repository = mockk(relaxed = true)
         coEvery { repository.loadPlaylist(any()) } returns Result.success(samplePlaylist)
 
+        updateRepository = mockk(relaxed = true)
+        coEvery { updateRepository.checkForUpdate(any()) } returns Result.success(null)
+
         favoritesFlow.value = emptySet()
         favoritesDataStore = mockk(relaxed = true)
         every { favoritesDataStore.favoriteChannelIds } returns favoritesFlow
@@ -72,7 +81,7 @@ class MainViewModelTest {
 
     @Test
     fun init_loadsPlaylistAndSetsFirstCategoryByDefault() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -88,7 +97,7 @@ class MainViewModelTest {
 
     @Test
     fun selectCategory_updatesSelectedCategoryId() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.selectCategory("cat_news")
@@ -99,7 +108,7 @@ class MainViewModelTest {
 
     @Test
     fun playChannel_setsActivePlayingChannel() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.playChannel(newsChannel)
@@ -110,7 +119,7 @@ class MainViewModelTest {
 
     @Test
     fun closePlayer_clearsActivePlayingChannelWhilePreservingCategory() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.selectCategory("cat_movies")
@@ -133,7 +142,7 @@ class MainViewModelTest {
         every { repository.getNextChannel(sportsChannel, any()) } returns newsChannel
         every { repository.getPreviousChannel(newsChannel, any()) } returns sportsChannel
 
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.playChannel(sportsChannel)
@@ -151,7 +160,7 @@ class MainViewModelTest {
     fun loadPlaylist_failure_emitsErrorState() = runTest {
         coEvery { repository.loadPlaylist(any()) } returns Result.failure(IOException("Falha de rede ao carregar canais"))
 
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -162,7 +171,7 @@ class MainViewModelTest {
 
     @Test
     fun loadPlaylist_preservesSelectedCategoryAcrossReload() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.selectCategory("cat_movies")
@@ -179,7 +188,7 @@ class MainViewModelTest {
 
     @Test
     fun setSearchQuery_updatesSearchState() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.setSearchQuery("ESPN")
@@ -190,7 +199,7 @@ class MainViewModelTest {
 
     @Test
     fun toggleFavorite_addsAndRemovesChannelId() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         viewModel.toggleFavorite("channel_123")
@@ -206,7 +215,7 @@ class MainViewModelTest {
 
     @Test
     fun toggleViewMode_switchesBetweenGridAndList() = runTest {
-        viewModel = MainViewModel(repository, favoritesDataStore)
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
         advanceUntilIdle()
 
         val initial = (viewModel.uiState.value as MainUiState.Success).isListView
@@ -214,4 +223,67 @@ class MainViewModelTest {
         val toggled = (viewModel.uiState.value as MainUiState.Success).isListView
         assertThat(toggled).isEqualTo(!initial)
     }
+
+    @Test
+    fun checkForUpdates_whenUpdateAvailable_emitsAvailableState() = runTest {
+        val updateInfo = AppUpdateInfo(
+            versionCode = 99,
+            versionName = "2.0.0",
+            apkUrl = "https://tv.gabesp.com.br/apk",
+            releaseNotes = "Super update"
+        )
+        coEvery { updateRepository.checkForUpdate() } returns Result.success(updateInfo)
+
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
+        advanceUntilIdle()
+
+        val updateState = viewModel.updateState.value
+        assertThat(updateState).isInstanceOf(UpdateUiState.Available::class.java)
+        val available = updateState as UpdateUiState.Available
+        assertThat(available.info.versionName).isEqualTo("2.0.0")
+    }
+
+    @Test
+    fun dismissUpdateDialog_resetsUpdateStateToIdle() = runTest {
+        val updateInfo = AppUpdateInfo(
+            versionCode = 99,
+            versionName = "2.0.0",
+            apkUrl = "https://tv.gabesp.com.br/apk"
+        )
+        coEvery { updateRepository.checkForUpdate() } returns Result.success(updateInfo)
+
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
+        advanceUntilIdle()
+        assertThat(viewModel.updateState.value).isInstanceOf(UpdateUiState.Available::class.java)
+
+        viewModel.dismissUpdateDialog()
+        assertThat(viewModel.updateState.value).isEqualTo(UpdateUiState.Idle)
+    }
+
+    @Test
+    fun startUpdateDownload_emitsDownloadingThenReadyToInstall() = runTest {
+        val updateInfo = AppUpdateInfo(
+            versionCode = 99,
+            versionName = "2.0.0",
+            apkUrl = "https://tv.gabesp.com.br/apk"
+        )
+        val dummyApk = File("dummy.apk")
+        coEvery { updateRepository.checkForUpdate() } returns Result.success(updateInfo)
+        every { updateRepository.downloadApk(updateInfo.apkUrl) } returns flowOf(
+            DownloadProgress.Progress(0.5f, 500L, 1000L),
+            DownloadProgress.Completed(dummyApk)
+        )
+
+        viewModel = MainViewModel(repository, favoritesDataStore, updateRepository)
+        advanceUntilIdle()
+
+        viewModel.startUpdateDownload()
+        advanceUntilIdle()
+
+        val state = viewModel.updateState.value
+        assertThat(state).isInstanceOf(UpdateUiState.ReadyToInstall::class.java)
+        val ready = state as UpdateUiState.ReadyToInstall
+        assertThat(ready.apkFile).isEqualTo(dummyApk)
+    }
 }
+
