@@ -17,6 +17,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: read
   pull-requests: write
 
 jobs:
@@ -51,7 +52,7 @@ jobs:
           cache: 'gradle'
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
           queries: security-extended,security-and-quality
@@ -63,7 +64,7 @@ jobs:
         run: ./gradlew :app:compileDebugKotlin :app:compileDebugJavaWithJavac --stacktrace
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         continue-on-error: true
         with:
           category: "/language:java-kotlin"
@@ -91,7 +92,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy SARIF Report to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('trivy-dependency-results.sarif') != ''
         continue-on-error: true
         with:
