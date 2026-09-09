@@ -34,3 +34,7 @@
 -keepclassmembers class * extends androidx.datastore.preferences.protobuf.GeneratedMessageLite {
     <fields>;
 }
+
+# AndroidX FileProvider (OTA Updates)
+-keep class androidx.core.content.FileProvider { *; }
+

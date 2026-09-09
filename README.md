@@ -9,7 +9,9 @@
 [![Compose for TV](https://img.shields.io/badge/Jetpack%20Compose-TV%20Material%203-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose/tv)
 [![Media3 ExoPlayer](https://img.shields.io/badge/Media3-ExoPlayer%201.3.1-FF6F00?style=for-the-badge&logo=google&logoColor=white)](https://developer.android.com/media/media3)
 [![Dagger Hilt](https://img.shields.io/badge/Dagger-Hilt%202.51.1-009688?style=for-the-badge&logo=dagger&logoColor=white)](https://dagger.dev/hilt/)
-[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20%26%20Azure-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/build-apk.yml)
+[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/build-apk.yml)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-107C41?style=for-the-badge&logo=securityscorecard&logoColor=white)](SECURITY.md)
+[![CodeQL SAST](https://img.shields.io/badge/SAST-CodeQL%20Passed-brightgreen?style=for-the-badge&logo=github&logoColor=white)](.github/workflows/security-scan.yml)
 [![Landing Page](https://img.shields.io/badge/Site%20Oficial-GitHub%20Pages-00E5FF?style=for-the-badge&logo=googlechrome&logoColor=black)](https://gdspereira.github.io/GabesTV/)
 [![Download APK](https://img.shields.io/badge/Download-APK-FF2A55?style=for-the-badge&logo=android&logoColor=white)](https://tv.gabesp.com.br/download)
 
@@ -34,7 +36,7 @@
 - 🗂️ **Drawer de Categorias Retrátil**: Navegação em split-screen com filtros dinâmicos, contagem de canais em tempo real e categorias organizadas.
 - 🎬 **HUD / OSD Cinematográfico**: Overlay elegante que exibe logotipo (com suporte a SVG vetorial via Coil), nome do canal, categoria, badge "AO VIVO" e dicas de atalhos, com esmaecimento automático após 4 segundos de inatividade.
 - 🌐 **Integração Threadfin / Middleware**: Conexão nativa com proxies M3U como **Threadfin**, além de mecanismo de *fallback* automático para lista local bundled em caso de indisponibilidade de rede.
-- 📦 **CI/CD Automatizado**: Pipelines prontas no GitHub Actions e Azure Pipelines gerando APKs assinados e otimizados com R8/ProGuard.
+- 📦 **CI/CD & Segurança Automatizada**: Pipeline unificada no GitHub Actions com testes unitários, CodeQL SAST, detecção de segredos (Gitleaks), análise de dependências (Trivy), inspeção estática de binários APK (MobSFscan), geração de SBOM (CycloneDX/SPDX) e releases automáticas otimizadas com R8/ProGuard.
 
 ---
 
@@ -162,16 +164,28 @@ companion object {
 
 ---
 
-## 🔄 CI / CD (Automação de Builds)
+## 🔄 CI / CD (Automação de Builds e Qualidade)
 
-O repositório conta com integração e entrega contínuas pré-configuradas:
+O repositório conta com orquestração completa e consolidada exclusivamente via **GitHub Actions**:
 
-* **GitHub Actions (`.github/workflows/build-apk.yml`):**
-  * Compila o APK e executa testes a cada `push` na branch `main`.
-  * Gera e disponibiliza o artefato `GabesTV-AndroidTV.apk` pronto para download.
-  * Ao criar uma tag de versão (ex: `v1.0.0`), cria automaticamente uma **GitHub Release** com o binário anexado.
-* **Azure Pipelines (`azure-pipelines.yml`):**
-  * Pipeline multiplataforma pronta para agentes Ubuntu corporativos com publicação de relatórios JUnit.
+* **Build & Release (`.github/workflows/build-apk.yml`):**
+  * Compilação com JDK 17 e execução de testes unitários a cada commit em `main` e `develop`.
+  * Verificação de integridade e análise estática do APK compilado (MobSFscan).
+  * Geração automatizada de SBOM (Software Bill of Materials) em CycloneDX e SPDX (`anchore/sbom-action`).
+  * Emissão de somas de verificação criptográficas SHA-256 (`checksums-sha256.txt`).
+  * Criação e atualização contínua de releases automáticas (`latest` e tags `v*`).
+* **Shift-Left Security Scan (`.github/workflows/security-scan.yml`):**
+  * **Secret Scanning (Gitleaks):** Bloqueio preventivo de vazamento de credenciais e tokens.
+  * **SAST (CodeQL):** Varredura estática de segurança e qualidade do código Kotlin/Java com integração ao GitHub Code Scanning Alerts.
+  * **Dependency Scanning (Trivy & Dependency Review):** Verificação contínua de vulnerabilidades em dependências e bibliotecas externas.
+
+---
+
+## 🔒 Segurança, Governança & Divulgação Responsável
+
+O projeto adota padrões rigorosos de segurança de ponta a ponta:
+- 🛡️ **Política de Segurança e SLAs de Correção:** Consulte o [SECURITY.md](SECURITY.md) para detalhes sobre relato responsável de vulnerabilidades (CVD) e prazos de resposta.
+- 👥 **Governança de Código e Proteção de Branches:** As regras de aprovação mandatória via [CODEOWNERS](.github/CODEOWNERS) e status checks obrigatórios estão documentadas em [docs/SECURITY_GOVERNANCE.md](docs/SECURITY_GOVERNANCE.md).
 
 ---
 

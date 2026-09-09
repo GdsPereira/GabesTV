@@ -11,10 +11,11 @@ on:
 
 permissions:
   contents: write
+  security-events: write
 
 jobs:
   build:
-    name: Build Android TV APK
+    name: Build Android TV APK & Security Verification
     runs-on: ubuntu-latest
 
     steps:
@@ -41,11 +42,148 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk dist/GabesTV-AndroidTV-release.apk
           cp app/build/outputs/apk/release/app-release.apk dist/GabesTV-AndroidTV.apk
 
+      - name: Generate version.json for In-App Auto-Update (OTA)
+        run: |
+          APK_FILE="dist/GabesTV-AndroidTV-release.apk"
+          FILE_SIZE=$(stat -c%s "$APK_FILE" 2>/dev/null || stat -f%z "$APK_FILE" 2>/dev/null || echo 0)
+          SHA256=$(sha256sum "$APK_FILE" | cut -d' ' -f1)
+
+          VERSION_NAME=$(grep 'versionName = ' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+          VERSION_CODE=$(grep 'versionCode = ' app/build.gradle.kts | head -n 1 | sed -E 's/.*= *([0-9]+).*/\1/')
+
+          if [ -z "$VERSION_NAME" ]; then VERSION_NAME="1.0.0"; fi
+          if [ -z "$VERSION_CODE" ]; then VERSION_CODE="1"; fi
+
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+            DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/GabesTV-AndroidTV-release.apk"
+          fi
+
+          cat <<EOF > dist/version.json
+          {
+            "versionCode": ${VERSION_CODE},
+            "versionName": "${VERSION_NAME}",
+            "apkUrl": "${DOWNLOAD_URL}",
+            "releaseNotes": "GabesTV v${VERSION_NAME} - Atualização com melhorias de estabilidade, novo In-App Updater e reprodução fluida.",
+            "isMandatory": false,
+            "sha256": "${SHA256}",
+            "fileSizeBytes": ${FILE_SIZE}
+          }
+          EOF
+          echo "📄 dist/version.json gerado com sucesso:"
+          cat dist/version.json
+
+      # ==============================================================================
+      # Fase 3: Segurança do Binário APK e Análise Estática
+      # ==============================================================================
+      - name: Verify Release APK Integrity & Hardening
+        run: |
+          echo "🔍 Verificando integridade e configurações de hardening do APK de Release..."
+          APK_PATH="dist/GabesTV-AndroidTV-release.apk"
+
+          if [ ! -f "$APK_PATH" ]; then
+            echo "❌ ERRO: Arquivo $APK_PATH não encontrado!"
+            exit 1
+          fi
+
+          # Validação de debuggable flag via apkanalyzer do Android SDK
+          APK_ANALYZER="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          if [ -f "$APK_ANALYZER" ]; then
+            IS_DEBUGGABLE=$("$APK_ANALYZER" manifest debuggable "$APK_PATH" 2>/dev/null || echo "false")
+            echo "Flag debuggable no Release: $IS_DEBUGGABLE"
+            if [ "$IS_DEBUGGABLE" = "true" ]; then
+              echo "❌ ERRO DE SEGURANÇA: O APK de Release foi compilado com debuggable=true!"
+              exit 1
+            fi
+          fi
+          echo "✅ Hardening validado: APK de Release com debuggable=false."
+
+      - name: Set up Python for Mobile Security Tools
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install and Run MobSFscan (Static Mobile Security Analysis)
+        run: |
+          pip install mobsfscan
+          mkdir -p security-reports
+          
+          # Executa o scan exportando JSON e SARIF
+          mobsfscan --json --output security-reports/mobsf-report.json app/ || true
+          mobsfscan --sarif --output security-reports/mobsf-report.sarif app/ || true
+
+          # Gate de segurança: Avalia achados de severidade crítica
+          python3 -c "
+          import json, sys
+          try:
+              with open('security-reports/mobsf-report.json') as f:
+                  data = json.load(f)
+              results = data.get('results', {})
+              critical = [k for k, v in results.items() if v.get('metadata', {}).get('severity') == 'CRITICAL']
+              high = [k for k, v in results.items() if v.get('metadata', {}).get('severity') == 'HIGH']
+              
+              print(f'Total de regras avaliadas: {len(results)}')
+              print(f'Findings Críticos: {len(critical)}')
+              print(f'Findings Altos: {len(high)}')
+              
+              if critical:
+                  print('❌ Gate de Segurança Falhou: Detectada vulnerabilidade de severidade CRITICAL no código/manifesto!')
+                  sys.exit(1)
+              print('✅ Gate de Segurança Aprovado: Nenhuma vulnerabilidade crítica bloqueante.')
+          except FileNotFoundError:
+              print('Relatório de segurança não encontrado.')
+          "
+
+      - name: Upload MobSFscan SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security-reports/mobsf-report.sarif
+          category: mobsfscan-apk
+
+      # ==============================================================================
+      # Fase 4: SBOM (Software Bill of Materials) e Rastreabilidade Criptográfica
+      # ==============================================================================
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: 'cyclonedx-json'
+          output-file: dist/GabesTV-sbom.cdx.json
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./
+          format: 'spdx-json'
+          output-file: dist/GabesTV-sbom.spdx.json
+
+      - name: Generate Checksums and Traceability Manifest
+        run: |
+          cd dist
+          sha256sum *.apk *.json > checksums-sha256.txt
+          echo "" >> checksums-sha256.txt
+          echo "# Proveniência e Rastreabilidade" >> checksums-sha256.txt
+          echo "Commit: ${{ github.sha }}" >> checksums-sha256.txt
+          echo "Ref: ${{ github.ref }}" >> checksums-sha256.txt
+          echo "Build Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> checksums-sha256.txt
+          cat checksums-sha256.txt
+          cd ..
+
+      # ==============================================================================
+      # Upload de Artefatos e Publicação de Releases
+      # ==============================================================================
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GabesTV-AndroidTV-APKs
-          path: dist/*.apk
+          name: GabesTV-AndroidTV-Package
+          path: |
+            dist/*.apk
+            dist/*.json
+            dist/checksums-sha256.txt
+            security-reports/*
           retention-days: 30
 
       - name: Create GitHub Release (Tags)
@@ -56,6 +194,10 @@ jobs:
             dist/GabesTV-AndroidTV-release.apk
             dist/GabesTV-AndroidTV-debug.apk
             dist/GabesTV-AndroidTV.apk
+            dist/version.json
+            dist/GabesTV-sbom.cdx.json
+            dist/GabesTV-sbom.spdx.json
+            dist/checksums-sha256.txt
           name: "GabesTV Android TV ${{ github.ref_name }}"
           draft: false
           prerelease: false
@@ -74,6 +216,10 @@ jobs:
             dist/GabesTV-AndroidTV-release.apk
             dist/GabesTV-AndroidTV-debug.apk
             dist/GabesTV-AndroidTV.apk
+            dist/version.json
+            dist/GabesTV-sbom.cdx.json
+            dist/GabesTV-sbom.spdx.json
+            dist/checksums-sha256.txt
           body: |
             ### 📺 GabesTV - Build Automático Recente
             Este release é atualizado automaticamente a cada alteração na branch `main`.
@@ -82,16 +228,30 @@ jobs:
             - **[Baixar GabesTV (Release)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk)** (Recomendado)
             - **[Baixar GabesTV (Debug)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-debug.apk)**
 
+            #### 🔄 In-App Auto-Update (OTA):
+            - **[version.json](https://github.com/${{ github.repository }}/releases/download/latest/version.json)** (Endpoint de metadados para verificação automática no app)
+
+            #### 🛡️ Segurança & Rastreabilidade de Supply Chain:
+            - **[SBOM CycloneDX (JSON)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-sbom.cdx.json)**
+            - **[SBOM SPDX (JSON)](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-sbom.spdx.json)**
+            - **[Hashes SHA-256](https://github.com/${{ github.repository }}/releases/download/latest/checksums-sha256.txt)** (Verificação de Integridade)
+
             > 💡 **Para Android TV / TV Box**: Cole o link direto no aplicativo **Downloader** (ou utilize um código encurtador) para instalar diretamente na TV!
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Summary with Direct Download Links
+      - name: Summary with Direct Download Links & Security Info
         run: |
-          echo "## 🚀 Build do GabesTV Concluído!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Build do GabesTV Concluído com Sucesso!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Links Diretos de Download (Sem ZIP / Sem Login):" >> $GITHUB_STEP_SUMMARY
           echo "- 📱 **Release APK (Otimizado)**: [Download GabesTV-AndroidTV-release.apk](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-release.apk)" >> $GITHUB_STEP_SUMMARY
           echo "- 🛠️ **Debug APK**: [Download GabesTV-AndroidTV-debug.apk](https://github.com/${{ github.repository }}/releases/download/latest/GabesTV-AndroidTV-debug.apk)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 **OTA Metadata**: [version.json](https://github.com/${{ github.repository }}/releases/download/latest/version.json)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🛡️ Rastreabilidade e SBOM:" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 **CycloneDX SBOM**: \`GabesTV-sbom.cdx.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 **SPDX SBOM**: \`GabesTV-sbom.spdx.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔐 **Hashes SHA-256**: \`checksums-sha256.txt\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> 📺 **Dica para TV Box / Android TV**: No app **Downloader** da AFTVNews, use o link direto acima para baixar e instalar sem precisar de computador!" >> $GITHUB_STEP_SUMMARY

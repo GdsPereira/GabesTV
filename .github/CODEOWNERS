@@ -1,0 +1,40 @@
+# ==============================================================================
+# GabesTV - Code Owners Configuration
+# ==============================================================================
+# As regras abaixo definem os responsáveis obrigatórios pela revisão de código
+# antes de qualquer merge nas branches protegidas (main e develop).
+# Mais informações: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Owner padrão para todos os arquivos do repositório
+* @GdsPereira
+
+# ==============================================================================
+# Workflows e CI/CD (Automação, Segurança e Deploy)
+# ==============================================================================
+/.github/workflows/ @GdsPereira
+/.github/CODEOWNERS @GdsPereira
+
+# ==============================================================================
+# Código-fonte da aplicação Android (Core, UI, Player, DI, Data, Assets)
+# ==============================================================================
+/app/ @GdsPereira
+/app/src/ @GdsPereira
+/app/src/main/AndroidManifest.xml @GdsPereira
+
+# ==============================================================================
+# Arquivos de Build, ProGuard, Assinatura e Dependências
+# ==============================================================================
+/build.gradle.kts @GdsPereira
+/settings.gradle.kts @GdsPereira
+/gradle.properties @GdsPereira
+/gradle/ @GdsPereira
+/gradlew @GdsPereira
+/gradlew.bat @GdsPereira
+/app/build.gradle.kts @GdsPereira
+/app/proguard-rules.pro @GdsPereira
+
+# ==============================================================================
+# Políticas de Segurança e Governança
+# ==============================================================================
+/SECURITY.md @GdsPereira
+/docs/ @GdsPereira
