@@ -20,3 +20,8 @@ local.properties
 secrets.properties
 
 *.hprof
+
+# AI & Agent local workflows/scratch
+.agents/
+.gemini/
+*.log
