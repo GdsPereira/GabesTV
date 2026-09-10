@@ -28,7 +28,7 @@ Para relatar uma falha de segurança de maneira responsável e confidencial, uti
    - Este canal permite que pesquisadores e mantenedores discutam, criem patches privados e validem correções em sigilo antes da publicação.
 
 2. **Canal Alternativo (E-mail)**:
-   - Caso não utilize o GitHub, envie um e-mail com o assunto `[SECURITY GABESTV] - Vulnerabilidade` para o mantenedor principal: **gabriel@gabesp.com.br** (ou contato indicado no perfil do autor `@GdsPereira`).
+   - Caso não utilize o GitHub, envie um e-mail com o assunto `[SECURITY GABESTV] - Vulnerabilidade` para o mantenedor principal.
 
 ### 📝 O que incluir no seu relatório:
 - **Resumo**: Descrição clara da vulnerabilidade encontrada.

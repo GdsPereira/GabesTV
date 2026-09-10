@@ -369,6 +369,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // --- Mobile Drawer Menu ---
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileMenuClose = document.getElementById('mobileMenuClose');
+  const mobileNavDrawer = document.getElementById('mobileNavDrawer');
+  const mobileNavBackdrop = document.getElementById('mobileNavBackdrop');
+  const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+  function openMobileMenu() {
+    if (mobileNavDrawer && mobileNavBackdrop) {
+      mobileNavDrawer.classList.add('open');
+      mobileNavBackdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function closeMobileMenu() {
+    if (mobileNavDrawer && mobileNavBackdrop) {
+      mobileNavDrawer.classList.remove('open');
+      mobileNavBackdrop.classList.remove('open');
+      document.body.style.overflow = '';
+      if (mobileMenuBtn) mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', openMobileMenu);
+  }
+  if (mobileMenuClose) {
+    mobileMenuClose.addEventListener('click', closeMobileMenu);
+  }
+  if (mobileNavBackdrop) {
+    mobileNavBackdrop.addEventListener('click', closeMobileMenu);
+  }
+  mobileNavLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      closeMobileMenu();
+    });
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileNavDrawer?.classList.contains('open')) {
+      closeMobileMenu();
+    }
+  });
+
+  // --- Category Tabs & Filter Chips Click Interactivity ---
+  const tvCatItems = document.querySelectorAll('.tv-cat-item');
+  tvCatItems.forEach(cat => {
+    cat.addEventListener('click', () => {
+      tvCatItems.forEach(c => c.classList.remove('active'));
+      cat.classList.add('active');
+    });
+  });
+
+  const mobileChips = document.querySelectorAll('.m-chip');
+  mobileChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      mobileChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
   // --- Initialize Default Channel ---
   renderTvCards();
   selectChannel(0);
