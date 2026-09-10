@@ -34,14 +34,23 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = System.getenv("KEYSTORE_FILE") ?: (project.findProperty("KEYSTORE_FILE") as? String)
-            if (!keystoreFile.isNullOrEmpty() && file(keystoreFile).exists()) {
-                storeFile = file(keystoreFile)
+            enableV1Signing = true
+            enableV2Signing = true
+            val customKeystore = System.getenv("KEYSTORE_FILE") ?: (project.findProperty("KEYSTORE_FILE") as? String)
+            val bundledKeystore = file("keystore/gabestv-release.jks")
+
+            if (!customKeystore.isNullOrEmpty() && file(customKeystore).exists()) {
+                storeFile = file(customKeystore)
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
                 keyAlias = System.getenv("KEY_ALIAS") ?: (project.findProperty("KEY_ALIAS") as? String)
                 keyPassword = System.getenv("KEY_PASSWORD") ?: (project.findProperty("KEY_PASSWORD") as? String)
+            } else if (bundledKeystore.exists()) {
+                storeFile = bundledKeystore
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "gabestv2026"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "gabestv"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "gabestv2026"
             } else {
-                // Fallback to debug keystore for development / local release validation
+                // Fallback to debug keystore for development if keystore is missing
                 initWith(getByName("debug"))
             }
         }

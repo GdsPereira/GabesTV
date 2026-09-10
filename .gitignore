@@ -17,6 +17,7 @@ local.properties
 # Keystores & sensitive credentials
 *.jks
 *.keystore
+!app/keystore/gabestv-release.jks
 secrets.properties
 
 *.hprof
